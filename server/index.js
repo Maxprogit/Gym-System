@@ -20,23 +20,34 @@ const io = new Server(server, {
     cors: { origin: "http://localhost:5173", methods: ["GET", "POST"] }
 });
 
+// Local SQL Database Configuration
+// const dbConfig = {
+//     user: "MaxProGit", 
+//     password: "Vizicsaczi1*",
+//     server: 'localhost',
+//     database: 'GoliadDB', 
+//     options: {
+//         encrypt: true,
+//         trustServerCertificate: true
+//     }
+// };
+
+
 const dbConfig = {
-    user: "MaxProGit", // Tu usuario
-    password: "Vizicsaczi1*", // Tu password
-    server: 'localhost',
-    database: 'GoliadDB', // Tu BD real (con 'd')
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    server: process.env.DB_SERVER,
+    database: process.env.DB_NAME,
     options: {
         encrypt: true,
-        trustServerCertificate: true
+        trustServerCertificate: false
     }
 };
 
-// Variable Global para la conexión SQL
+
 let pool;
 
-// ---------------------------------------------------------
-// 2. CONEXIÓN BASE DE DATOS (Global)
-// ---------------------------------------------------------
+
 async function connectDB() {
     try {
         pool = await sql.connect(dbConfig);
@@ -45,11 +56,8 @@ async function connectDB() {
         console.error('❌ Error fatal al conectar SQL:', err);
     }
 }
-connectDB(); // Iniciamos conexión
+connectDB();
 
-// ---------------------------------------------------------
-// 3. WHATSAPP BOT
-// ---------------------------------------------------------
 const whatsappClient = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: { args: ['--no-sandbox'], headless: true },
@@ -79,11 +87,7 @@ io.on('connection', (socket) => {
     if (isWhatsAppReady) socket.emit('whatsapp_status', 'connected');
 });
 
-// ---------------------------------------------------------
-// 4. RUTAS API (ENDPOINTS)
-// ---------------------------------------------------------
 
-// GET: Obtener Miembros
 app.get('/api/members', async (req, res) => {
     try {
         const result = await pool.request().query(`
@@ -98,31 +102,30 @@ app.get('/api/members', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// POST: Login Seguro
+
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     
     try {
-        // A. Buscamos solo por usuario (SIN validar contraseña en SQL)
+
         const result = await pool.request()
             .input('User', sql.NVarChar, username)
             .query('SELECT UserID, Username, PasswordHash, Role FROM Users WHERE Username = @User');
 
-        // B. Si el usuario no existe, rechazamos
+
         if (result.recordset.length === 0) {
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
         const user = result.recordset[0];
 
-        // C. VERIFICACIÓN CRÍTICA: Comparamos la contraseña enviada con el HASH de la BD
         const isMatch = await bcrypt.compare(password, user.PasswordHash);
 
         if (!isMatch) {
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
-        // D. Si pasa, devolvemos info (pero NUNCA el hash)
+
         res.json({ 
             success: true, 
             user: { 
@@ -138,7 +141,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// POST: Crear Usuario Seguro (Utilidad para Admin) //usar con postman
+
 app.post('/api/admin/create', async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -158,17 +161,17 @@ app.post('/api/admin/create', async (req, res) => {
     }
 });
 
-// POST: Nuevo Miembro (CORREGIDO: Ahora registra el pago inicial)
+
 app.post('/api/members', async (req, res) => {
-    // Nota: Ahora recibimos también el método de pago (opcional, por defecto 'Efectivo')
+ 
     const { fullName, phone, planId, paymentMethod } = req.body; 
     
     try {
-        // 1. Limpieza de teléfono
+ 
         let cleanPhone = phone.replace(/\D/g, '');
         if (cleanPhone.length === 10) cleanPhone = `521${cleanPhone}`;
         
-        // 2. Insertar Miembro
+      
         const memberResult = await pool.request()
             .input('FullName', sql.NVarChar, fullName)
             .input('Phone', sql.NVarChar, cleanPhone)
@@ -176,33 +179,28 @@ app.post('/api/members', async (req, res) => {
         
         const newMemberId = memberResult.recordset[0].MemberID;
 
-        // 3. Obtener Precio y Duración del Plan seleccionado
         const planResult = await pool.request()
             .input('PlanID', sql.Int, planId)
-            .query('SELECT DurationDays, Price FROM Plans WHERE PlanID = @PlanID'); // <--- OJO: Pedimos Price también
-        
+            .query('SELECT DurationDays, Price FROM Plans WHERE PlanID = @PlanID'); 
         if (planResult.recordset.length === 0) throw new Error("Plan no encontrado");
 
         const { DurationDays, Price } = planResult.recordset[0];
 
-        // Calcular fecha fin
+       
         const endDate = new Date();
         endDate.setDate(endDate.getDate() + DurationDays);
 
-        // 4. Crear Suscripción
+       
         await pool.request()
             .input('MemberID', sql.Int, newMemberId)
             .input('PlanID', sql.Int, planId)
             .input('EndDate', sql.DateTime, endDate)
             .query('INSERT INTO Subscriptions (MemberID, PlanID, EndDate) VALUES (@MemberID, @PlanID, @EndDate)');
 
-        // ---------------------------------------------------------------
-        // 5. ¡NUEVO! REGISTRAR EL PAGO INICIAL EN CAJA
-        // ---------------------------------------------------------------
         await pool.request()
             .input('MemberID', sql.Int, newMemberId)
-            .input('Amount', sql.Decimal(10,2), Price) // Usamos el precio del plan
-            .input('Method', sql.NVarChar, paymentMethod || 'Efectivo') // Si no viene, asumimos Efectivo
+            .input('Amount', sql.Decimal(10,2), Price) 
+            .input('Method', sql.NVarChar, paymentMethod || 'Efectivo') 
             .query('INSERT INTO Payments (MemberID, Amount, PaymentMethod, PaymentDate) VALUES (@MemberID, @Amount, @Method, GETDATE())');
 
         res.json({ success: true, memberId: newMemberId });
@@ -212,7 +210,7 @@ app.post('/api/members', async (req, res) => {
         res.status(500).json({ error: err.message }); 
     }
 });
-// POST: RENOVAR (Corrección "pool is not defined")
+
 app.post('/api/renew', async (req, res) => {
     const { memberId, planId, paymentMethod, amount } = req.body;
     try {
@@ -227,7 +225,7 @@ app.post('/api/renew', async (req, res) => {
             if (currentEnd > newStartDate) newStartDate = currentEnd;
         }
 
-        // 2. Duración
+      
         const planResult = await pool.request()
             .input('PlanID', sql.Int, planId)
             .query('SELECT DurationDays FROM Plans WHERE PlanID = @PlanID');
@@ -236,14 +234,14 @@ app.post('/api/renew', async (req, res) => {
         const newEndDate = new Date(newStartDate);
         newEndDate.setDate(newEndDate.getDate() + duration);
 
-        // 3. Update
+    
         await pool.request()
             .input('MemberID', sql.Int, memberId)
             .input('PlanID', sql.Int, planId)
             .input('EndDate', sql.DateTime, newEndDate)
             .query('UPDATE Subscriptions SET EndDate = @EndDate, PlanID = @PlanID WHERE MemberID = @MemberID AND IsActive = 1');
 
-        // 4. Insertar Pago
+    
         await pool.request()
             .input('MemberID', sql.Int, memberId)
             .input('Amount', sql.Decimal(10,2), amount)
@@ -256,13 +254,13 @@ app.post('/api/renew', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-// PUT: EDITAR MIEMBRO
+
 app.put('/api/members/:id', async (req, res) => {
     const { id } = req.params;
     const { fullName, phone } = req.body;
     
     try {
-        // Limpieza de teléfono (igual que al crear)
+        
         let cleanPhone = phone.replace(/\D/g, '');
         if (cleanPhone.length === 10) cleanPhone = `521${cleanPhone}`;
 
@@ -279,7 +277,7 @@ app.put('/api/members/:id', async (req, res) => {
     }
 });
 
-// DELETE: ELIMINAR (Corrección "pool is not defined")
+
 app.delete('/api/members/:id', async (req, res) => {
     const { id } = req.params;
     try {
@@ -293,7 +291,7 @@ app.delete('/api/members/:id', async (req, res) => {
     }
 });
 
-// GET: Historial de Pagos
+
 app.get('/api/payments', async (req, res) => {
     try {
         const result = await pool.request().query(`
@@ -308,7 +306,6 @@ app.get('/api/payments', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// GET: Dashboard Stats
 app.get('/api/dashboard/stats', async (req, res) => {
     try {
         const activeResult = await pool.request().query("SELECT COUNT(*) as Count FROM Subscriptions WHERE IsActive = 1 AND EndDate >= GETDATE()");
@@ -323,7 +320,6 @@ app.get('/api/dashboard/stats', async (req, res) => {
             ORDER BY s.EndDate ASC
         `);
 
-        // Datos Gráfica
         const historyResult = await pool.request().query(`
             SELECT DATENAME(MONTH, s.StartDate) as MonthName, COALESCE(SUM(p.Price), 0) as Total
             FROM Subscriptions s JOIN Plans p ON s.PlanID = p.PlanID
@@ -345,9 +341,7 @@ app.get('/api/dashboard/stats', async (req, res) => {
     }
 });
 
-// ---------------------------------------------------------
-// 5. CRON JOB (Notificaciones)
-// ---------------------------------------------------------
+
 cron.schedule('0 8 * * *', async () => {
     if (!isWhatsAppReady) return;
     try {
@@ -364,6 +358,12 @@ cron.schedule('0 8 * * *', async () => {
             await whatsappClient.sendMessage(chatId, message);
         }
     } catch (err) { console.error("Error Cron:", err); }
+});
+
+
+
+app.get('/healthz', (req, res) => {
+    res.status(200).send('OK');
 });
 
 const PORT = 3001;
