@@ -1,0 +1,62 @@
+# Dependencias (Pesado, no subir)
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Variables de Entorno (SEGURIDAD CRÍTICA)
+.env
+*.env
+.DS_Store
+
+# Archivos de compilación
+dist/
+build/
+server/session/
+.wwebjs_auth/
+.wwebjs_cache/
+
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+
+# Ignorar node_modules en cualquier carpeta
+node_modules/
+*/node_modules/
+
+# Ignorar archivos de entorno (Secretos)
+.env
+*.env
+
+# Ignorar sesión de WhatsApp (IMPORTANTE)
+.wwebjs_auth/
+server/.wwebjs_auth/
+.wwebjs_cache/
+server/.wwebjs_cache/
+
+# Ignorar archivos de sistema y compilación
+dist/
+build/
+.DS_Store
