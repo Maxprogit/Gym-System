@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import axios from 'axios'; // Asegúrate de tener axios: npm install axios
+import axios from 'axios';
 
 export interface Member {
   MemberID: number;
@@ -11,43 +11,41 @@ export interface Member {
 }
 
 interface MemberStore {
-  
   members: Member[];
   isLoading: boolean;
   fetchMembers: () => Promise<void>;
   addMember: (data: any) => Promise<boolean>;
-  // NUEVAS ACCIONES
   deleteMember: (id: number) => Promise<boolean>;
   editMember: (id: number, fullName: string, phone: string) => Promise<boolean>;
 }
+
+// Guardamos la URL base en una variable para no escribirla tanto y evitar errores
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const useMemberStore = create<MemberStore>((set, get) => ({
   members: [],
   isLoading: false,
 
   fetchMembers: async () => {
-    // ... (Tu código existente)
     try {
-        const response = await axios.get('http://localhost:3001/api/members');
+        const response = await axios.get(`${API_URL}/api/members`);
         set({ members: response.data });
     } catch (e) { console.error(e) }
   },
 
   addMember: async (newItem) => {
-    // ... (Tu código existente)
     try {
-        await axios.post('http://localhost:3001/api/members', newItem);
+        await axios.post(`${API_URL}/api/members`, newItem);
         get().fetchMembers();
         return true;
     } catch (e) { return false; }
   },
 
-  // NUEVO: Borrar
   deleteMember: async (id) => {
-    if (!confirm('¿Estás seguro de eliminar este registro? Esta acción no se puede deshacer.')) return false;
+    if (!confirm('¿Estás seguro de eliminar este registro?')) return false;
     try {
-        await axios.delete(`http://localhost:3001/api/members/${id}`);
-        set(state => ({ members: state.members.filter(m => m.MemberID !== id) })); // Actualización optimista
+        await axios.delete(`${API_URL}/api/members/${id}`);
+        set(state => ({ members: state.members.filter(m => m.MemberID !== id) }));
         return true;
     } catch (error) {
         console.error(error);
@@ -55,11 +53,10 @@ export const useMemberStore = create<MemberStore>((set, get) => ({
     }
   },
 
-  // NUEVO: Renovar
   editMember: async (id, fullName, phone) => {
     try {
-        await axios.put(`http://localhost:3001/api/members/${id}`, { fullName, phone });
-        get().fetchMembers(); // Recargar lista
+        await axios.put(`${API_URL}/api/members/${id}`, { fullName, phone });
+        get().fetchMembers();
         return true;
     } catch (error) {
         console.error(error);
