@@ -19,7 +19,7 @@ export function RenewModal({ isOpen, onClose, memberId, memberName }: RenewModal
 
   const handleRenew = async () => {
     setLoading(true);
-    // Hardcodeado $500 y Plan 1 por ahora (puedes hacerlo dinámico luego)
+   
     const success = await editMember({
         memberId,
         planId: 1, 

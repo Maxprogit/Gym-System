@@ -18,22 +18,6 @@ export default function WhatsAppPage() {
   const [status, setStatus] = useState<'disconnected' | 'authenticated' | 'connected'>('disconnected');
 
 
-//   const [testPhone, setTestPhone] = useState('524645799079'); // Tu número
-//   const [sending, setSending] = useState(false);
-//   // 3. Agrega esta función
-// const handleTestMessage = async () => {
-//     setSending(true);
-//     try {
-//         await axios.post('http://localhost:3001/api/send-test', {
-//             phone: testPhone,
-//             message: "🔔 Hola! Esta es una prueba del sistema GOLIAT. Tu gimnasio ahora habla solo. 🤖"
-//         });
-//         alert("¡Mensaje enviado! Revisa tu celular.");
-//     } catch (error) {
-//         alert("Error al enviar. Asegúrate de poner el código de país (Ej: 521...)");
-//     }
-//     setSending(false);
-// };
 
   useEffect(() => {
     // Escuchar eventos del servidor
@@ -83,7 +67,6 @@ export default function WhatsAppPage() {
           ) : qrCode ? (
             <>
                 <QRCode value={qrCode} size={256} className="rounded-lg" />
-                {/* INSTRUCCIONES VISUALES */}
                 <div className="bg-gray-100 p-3 rounded-lg w-full text-center">
                     <p className="text-xs text-gray-600 font-bold mb-1">CÓMO ESCANEAR:</p>
                     <ol className="text-[10px] text-gray-500 text-left list-decimal pl-4 space-y-1 font-mono">
@@ -102,7 +85,7 @@ export default function WhatsAppPage() {
         </div>
       </div>
 
-      {/* Indicador de Estado */}
+
       <div className="flex items-center gap-3 bg-bg-[#18181b] px-6 py-3 rounded-full border border-[#27272a]">
         <Smartphone size={20} className={status === 'connected' ? 'text-[#D4FF00]' : 'text-[#a1a1aa]'} />
         <span className="font-mono text-sm uppercase">
@@ -111,27 +94,6 @@ export default function WhatsAppPage() {
             </span>
         </span>
       </div>
-
-      {/* {status === 'connected' && (
-        <div className="mt-8 p-6 bg-bg-[#18181b] border border-[#27272a] rounded-xl w-full max-w-md animate-in slide-in-from-bottom-4">
-            <h3 className="text-white font-bold mb-4 flex items-center gap-2">
-                <Send size={18} /> Probar Envío
-            </h3>
-            <div className="flex gap-2">
-                <Input 
-                    value={testPhone}
-                    onChange={(e) => setTestPhone(e.target.value)}
-                    placeholder="521..." 
-                />
-                <Button onClick={handleTestMessage} isLoading={sending}>
-                    Enviar
-                </Button>
-            </div>
-            <p className="text-[10px] text-[#a1a1aa] mt-2 font-mono">
-                Ingresa un número con código de país (sin el +) para probar.
-            </p>
-        </div>
-    )} */}
     </div>
   );
 }

@@ -79,7 +79,7 @@ export function AddMemberModal({ isOpen, onClose }: ModalProps) {
               onChange={(e) => setFormData({...formData, planId: Number(e.target.value)})}
             >
               <option value={1}>Goliat Mensual ($500)</option>
-              {/* Aquí podrías mapear planes desde la BD si quisieras */}
+              
             </select>
           </div>
 

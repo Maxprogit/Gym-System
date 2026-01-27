@@ -9,7 +9,7 @@ interface DashboardStats {
   expiringSoon: number;
   monthlyRevenue: number;
   expiringList: Array<{ FullName: string, PlanName: string, DaysLeft: number }>;
-  revenueHistory: Array<{ MonthName: string, Total: number }>; // <--- Nuevo campo
+  revenueHistory: Array<{ MonthName: string, Total: number }>; 
 }
 
 export default function DashboardPage() {

@@ -11,11 +11,11 @@ import { EditMemberModal } from '../components/EditMemberModal';
 
 export default function MembersPage() {
   const { members, fetchMembers, isLoading, deleteMember } = useMemberStore();
-  const [isModalOpen, setIsModalOpen] = useState(false); // <--- Estado del modal
+  const [isModalOpen, setIsModalOpen] = useState(false); 
 
-  const [searchTermn, setSearchTerm] = useState(''); // Estado para el término de búsqueda  
+  const [searchTermn, setSearchTerm] = useState(''); 
 
-  // Estado para el modal de renovación
+  
   const [renewModalOpen, setRenewModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<{
     MemberID: number;
@@ -30,7 +30,7 @@ export default function MembersPage() {
     fetchMembers();
   }, [fetchMembers]);
 
-  // Logica de filtrado (a implementar)
+
   const filteredMembers = members.filter(member => {
       const term = searchTermn.toLowerCase();
       const name = member.FullName.toLowerCase();
@@ -38,12 +38,12 @@ export default function MembersPage() {
       return name.includes(term) || idMatch.includes(term);
   });
 
-  // Manejar apertura del modal de renovación
+
   const handleOpenRenew = (member: any) => {
     setSelectedMember({
       MemberID: member.MemberID,
       FullName: member.FullName,
-      Phone: member.Phone || '', // Proporciona un valor predeterminado si falta
+      Phone: member.Phone || '', 
       id: member.MemberID,
       name: member.FullName
     });
@@ -52,13 +52,12 @@ export default function MembersPage() {
 
   const handleDelete = async (id: number) => {
     await deleteMember(id);
-    // No necesitamos recargar manualmente porque el store actualiza la lista
+    
   };
   // Función para abrir el modal
   const handleOpenEdit = (member: any) => {
     setSelectedMember({ 
-        id: member.MemberID, // Nota: Asegúrate de pasar el objeto completo al modal o adaptar el state
-        // Mejor truco: Guardamos el objeto completo 'member' en un state 'editingMember'
+        id: member.MemberID, 
         ...member 
     });
     setEditModalOpen(true);
@@ -72,13 +71,11 @@ export default function MembersPage() {
           <h2 className="text-3xl font-heading font-bold text-white mb-1">ATLETAS</h2>
           <p className="text-[#a1a1aa] font-mono text-sm">Gestión de membresías activas</p>
         </div>
-        {/* El botón ahora abre el modal */}
         <Button className="bg-[#D4FF00] text-black font-extrabold hover:bg-[#b8dd00] hover:shadow-[0_0_20px_#D4FF00] transition-all" onClick={() => setIsModalOpen(true)}>
           <Plus className="mr-2 h-5 w-5" /> Nuevo Atleta
         </Button>
       </div>
 
-      {/* Barra de Búsqueda (Visual por ahora) */}
       <div className="flex gap-4 items-center bg-bg-[#18181b] p-4 rounded-xl border border-[#27272a]/50">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#a1a1aa]" />
@@ -110,12 +107,11 @@ export default function MembersPage() {
           {filteredMembers.map((member) => (
             <MemberCard 
               key={member.MemberID}
-              memberId={member.MemberID} // Importante pasar ID
+              memberId={member.MemberID} 
               name={member.FullName}
               plan={member.PlanName}
               daysLeft={member.DaysLeft}
               status={member.DaysLeft > 0 ? 'active' : 'expired'}
-              // CONECTAMOS LAS ACCIONES
               onRenew={() => handleOpenRenew(member)}
               onDelete={() => handleDelete(member.MemberID)}
               onEdit={() => handleOpenEdit(member)}
@@ -124,7 +120,7 @@ export default function MembersPage() {
         </div>
       )}
 
-      {/* Renderizamos el Modal aquí */}
+
       <AddMemberModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
@@ -140,7 +136,7 @@ export default function MembersPage() {
       <EditMemberModal 
             isOpen={editModalOpen}
             onClose={() => setEditModalOpen(false)}
-            member={selectedMember ? { // Adaptador simple
+            member={selectedMember ? { 
                 MemberID: selectedMember.id || selectedMember.MemberID, 
                 FullName: selectedMember.name || selectedMember.FullName,
                 Phone: selectedMember.Phone || '' 

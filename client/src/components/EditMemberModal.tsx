@@ -24,7 +24,7 @@ export function EditMemberModal({ isOpen, onClose, member }: EditModalProps) {
     if (member) {
       setFormData({
         fullName: member.FullName,
-        phone: member.Phone.replace('521', '') // Quitamos el 521 visualmente para que sea fácil editar
+        phone: member.Phone.replace('521', '') 
       });
     }
   }, [member, isOpen]);
@@ -35,7 +35,7 @@ export function EditMemberModal({ isOpen, onClose, member }: EditModalProps) {
     e.preventDefault();
     setLoading(true);
     
-    // Llamamos a la acción del store (que crearemos en el paso 3)
+
     const success = await editMember(member.MemberID, formData.fullName, formData.phone);
     
     setLoading(false);

@@ -15,7 +15,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. Al iniciar, verificamos si ya existe una sesión guardada
+
   useEffect(() => {
     const session = localStorage.getItem('goliat_session');
     if (session) {
@@ -24,7 +24,7 @@ function App() {
     setIsLoading(false);
   }, []);
 
-  // 2. Pantalla de carga (para evitar parpadeos mientras leemos localStorage)
+
   if (isLoading) {
     return (
       <div className="h-screen w-full bg-[#09090b] flex items-center justify-center">
@@ -33,7 +33,7 @@ function App() {
     );
   }
 
-  // 3. SI NO ESTÁ AUTENTICADO -> Mostramos SOLO el Login
+
   if (!isAuthenticated) {
     return (
       <LoginPage 
@@ -42,7 +42,7 @@ function App() {
     );
   }
 
-  // 4. SI ESTÁ AUTENTICADO -> Mostramos el Sistema Completo
+
   return (
     <BrowserRouter>
       <Routes>
@@ -57,7 +57,7 @@ function App() {
 
         </Route>
         
-        {/* Cualquier ruta desconocida redirige al inicio */}
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

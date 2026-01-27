@@ -19,7 +19,7 @@ interface MemberStore {
   editMember: (id: number, fullName: string, phone: string) => Promise<boolean>;
 }
 
-// Guardamos la URL base en una variable para no escribirla tanto y evitar errores
+
 const API_URL = import.meta.env.VITE_API_URL;
 
 export const useMemberStore = create<MemberStore>((set, get) => ({

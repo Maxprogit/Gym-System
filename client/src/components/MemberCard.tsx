@@ -3,7 +3,7 @@ import { cn } from '../lib/utils';
 import { MoreVertical, CheckCircle, AlertTriangle, Trash2, RefreshCcw, Edit } from 'lucide-react';
 
 interface MemberProps {
-  memberId: number; // Agregamos ID para saber a quien borrar/renovar
+  memberId: number; 
   name: string;
   plan: string;
   daysLeft: number;
@@ -44,7 +44,7 @@ export function MemberCard({ name, plan, daysLeft, status, onRenew, onDelete, on
             {/* Menú Desplegable */}
             {showMenu && (
                 <>
-                <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} /> {/* Cierra al clic fuera */}
+                <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} /> 
                 <div className="absolute right-0 mt-2 w-48 bg-[#121212] border border-white/10 rounded-lg shadow-xl z-20 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                     <button onClick={() => { setShowMenu(false); onRenew(); }} className="w-full text-left px-4 py-3 text-sm text-white hover:bg-[#D4FF00] hover:text-black flex items-center gap-2 transition-colors font-medium">
                         <RefreshCcw size={16} /> Renovar / Pagar

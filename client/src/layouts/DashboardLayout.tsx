@@ -5,8 +5,8 @@ import { MessageCircle } from 'lucide-react';
 export default function DashboardLayout() {
 
   const handleLogout = () => {
-  localStorage.removeItem('goliat_session'); // Borrar la llave
-  window.location.reload(); // Recargar para que App.tsx detecte que no hay sesión y muestre el Login
+  localStorage.removeItem('goliat_session'); 
+  window.location.reload(); 
 };
   return (
     <div className="flex h-screen w-full overflow-hidden bg-bg">
