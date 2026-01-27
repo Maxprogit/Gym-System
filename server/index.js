@@ -9,15 +9,26 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const bcrypt = require('bcryptjs');
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: [
+        "http://localhost:5173",
+        "https://gym-system-tawny.vercel.app" 
+    ],
+    credentials: true
+}));
 app.use(express.json());
 
-// ---------------------------------------------------------
-// 1. CONFIGURACIÓN
-// ---------------------------------------------------------
+
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: { origin: "http://localhost:5173", methods: ["GET", "POST"] }
+    cors: {
+        origin: [
+            "http://localhost:5173", 
+            "https://gym-system-tawny.vercel.app" 
+        ],
+        methods: ["GET", "POST"],
+        credentials: true
+    }
 });
 
 // Local SQL Database Configuration

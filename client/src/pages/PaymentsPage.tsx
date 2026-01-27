@@ -23,7 +23,7 @@ export default function PaymentsPage() {
 
   const fetchPayments = async () => {
     try {
-      const res = await axios.get('http://localhost:3001/api/payments');
+      const res = await axios.get('https://nutricion.onrender.com/api/payments');
       setPayments(res.data);
     } catch (error) {
       console.error(error);
