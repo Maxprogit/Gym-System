@@ -32,29 +32,29 @@ const io = new Server(server, {
 });
 
 // Local SQL Database Configuration
+const dbConfig = {
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    server: process.env.DB_SERVER,
+    database: process.env.DB_NAME, 
+    options: {
+        encrypt: false,
+        trustServerCertificate: true,
+    }
+};
+
+//AZURE SQL CONFIG 
 // const dbConfig = {
-//     user: "MaxProGit", 
-//     password: "Vizicsaczi1*",
-//     server: 'localhost',
-//     database: 'GoliadDB', 
+//     server: process.env.DB_SERVER,
+//     database: process.env.DB_NAME,
+//     driver: 'msnodesqlv8',
 //     options: {
-//         encrypt: true,
+//         trustedConnection: true,
 //         trustServerCertificate: true
 //     }
 // };
 
 
-const dbConfig = {
-    user: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    server: process.env.DB_SERVER,
-    database: process.env.DB_NAME,
-    options: {
-        encrypt: true,
-        trustServerCertificate: false,
-        enableArithAbort: true
-    }
-};
 
 
 let pool;
@@ -78,12 +78,11 @@ const whatsappClient = new Client({
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process', 
-            '--disable-gpu'
-        ]
+            '--disable-gpu',
+            '--disable-blink-features=AutomationControlled'
+        ],
+    timeout: 60000,
+    defaultViewport: null
   },
 });
 whatsappClient.on('auth_failure', (msg) => {
@@ -104,7 +103,26 @@ whatsappClient.on('ready', () => {
     io.emit('whatsapp_status', 'connected');
 });
 
-whatsappClient.initialize();
+whatsappClient.on('disconnected', () => {
+    console.log('❌ WhatsApp Desconectado');
+    isWhatsAppReady = false;
+    io.emit('whatsapp_status', 'disconnected');
+});
+
+// Inicializar WhatsApp con reintentos (no bloquea servidor)
+async function initializeWhatsApp() {
+    try {
+        console.log('🔄 Iniciando WhatsApp...');
+        await whatsappClient.initialize();
+    } catch (err) {
+        console.error('⚠️  WhatsApp no disponible:', err.message);
+        console.log('⏳ Reintentando en 10 segundos...');
+        setTimeout(initializeWhatsApp, 10000);
+    }
+}
+
+// No bloquear el servidor si WhatsApp falla
+setTimeout(initializeWhatsApp, 2000);
 
 io.on('connection', (socket) => {
     if (isWhatsAppReady) socket.emit('whatsapp_status', 'connected');
@@ -184,6 +202,15 @@ app.post('/api/admin/create', async (req, res) => {
     }
 });
 
+app.get('/api/plans', async (req, res) => {
+    try {
+        const result = await pool.request().query('SELECT PlanID, PlanName, Price, DurationDays FROM Plans');
+        res.json(result.recordset);
+        console.log("Planes obtenidos:", result.recordset);
+    } catch (error) {
+        res.status(500).json({error: error.message});
+    }
+})
 
 app.post('/api/members', async (req, res) => {
  

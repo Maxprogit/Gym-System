@@ -3,15 +3,25 @@ import { X, Save, Loader2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { useMemberStore } from '../stores/useMemberStore';
+import { useEffect } from 'react';
+import { API } from '../config/api';
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+interface Plan {
+  PlanID: number;
+  PlanName: string;
+  DurationDays: number;
+  Price: number;
+}
+
 export function AddMemberModal({ isOpen, onClose }: ModalProps) {
   const { addMember } = useMemberStore();
   const [loading, setLoading] = useState(false);
+  const [plans, setPlans] = useState<Plan[]>([]);
   
   // Estado del formulario
   const [formData, setFormData] = useState({
@@ -19,6 +29,19 @@ export function AddMemberModal({ isOpen, onClose }: ModalProps) {
     phone: '521', // Prefijo por defecto para WhatsApp MX
     planId: 1 // Por defecto plan 1 (puedes hacerlo dinámico luego)
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch(API.plans, { method: 'GET' })
+      .then(res => res.json())
+      .then(data => {
+        setPlans(data);
+        setFormData(prev => ({ ...prev, planId: data[0]?.PlanID || 0 }));
+        console.log("Planes disponibles:", data);
+      });
+    }
+  }, [isOpen]);
+
 
   if (!isOpen) return null;
 
@@ -40,7 +63,7 @@ export function AddMemberModal({ isOpen, onClose }: ModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-bg-[#18181b] border border-[#27272a] rounded-xl p-6 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+      <div className="w-full max-w-md bg-[#18181b] border border-[#27272a] rounded-xl p-6 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
         
         {/* Header Modal */}
         <div className="flex justify-between items-center mb-6">
@@ -74,11 +97,15 @@ export function AddMemberModal({ isOpen, onClose }: ModalProps) {
           <div className="space-y-2">
             <label className="text-xs font-mono text-[#a1a1aa] uppercase tracking-wider">Plan</label>
             <select 
-              className="flex h-11 w-full rounded-lg border border-[#27272a] bg-bg-[#18181b] px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4FF00] transition-all font-mono"
+              className="flex h-11 w-full rounded-lg border border-[#27272a] bg-[#18181b] px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4FF00] transition-all font-mono"
               value={formData.planId}
               onChange={(e) => setFormData({...formData, planId: Number(e.target.value)})}
             >
-              <option value={1}>Goliat Mensual ($500)</option>
+              {plans.map(plan => (
+                <option key={plan.PlanID} value={plan.PlanID}>
+                  {plan.PlanName} - {plan.DurationDays} días - ${plan.Price}
+                </option>
+              ))}
               
             </select>
           </div>

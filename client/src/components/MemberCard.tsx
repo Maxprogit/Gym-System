@@ -18,7 +18,7 @@ export function MemberCard({ name, plan, daysLeft, status, onRenew, onDelete, on
   const [showMenu, setShowMenu] = useState(false);
 
   return (
-    <div className="relative group bg-bg-[#18181b]/50 backdrop-blur-md border border-white/10 rounded-xl p-5 transition-all duration-300 hover:border-[#D4FF00]/50 hover:shadow-[0_0_30px_rgba(212,255,0,0.15)] hover:-translate-y-1">
+    <div className="relative group bg-[#18181b]/50 backdrop-blur-md border border-white/10 rounded-xl p-5 transition-all duration-300 hover:border-[#D4FF00]/50 hover:shadow-[0_0_30px_rgba(212,255,0,0.15)] hover:-translate-y-1">
       {/* Indicador lateral */}
       <div className={cn(
         "absolute left-0 top-4 bottom-4 w-1 rounded-r-full shadow-[0_0_10px_currentColor]",

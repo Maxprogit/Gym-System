@@ -26,7 +26,7 @@ export default function LoginPage({ onLoginSuccess }: LoginProps) {
 
     try {
 
-      const res = await axios.post('https://nutricion.onrender.com/api/login', {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/login`, {
         username: formData.username,
         password: formData.password
       });

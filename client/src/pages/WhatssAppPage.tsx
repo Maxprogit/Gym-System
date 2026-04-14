@@ -11,7 +11,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import axios from 'axios';
 
-const socket = io('https://nutricion.onrender.com'); 
+const socket = io(import.meta.env.VITE_API_URL); 
 
 export default function WhatsAppPage() {
   const [qrCode, setQrCode] = useState<string>('');

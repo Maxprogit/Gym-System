@@ -17,7 +17,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get('https://nutricion.onrender.com/api/dashboard/stats')
+    axios.get(`${import.meta.env.VITE_API_URL}/api/dashboard/stats`)
       .then(res => setStats(res.data))
       .catch(err => console.error(err))
       .finally(() => setLoading(false));

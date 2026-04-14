@@ -44,7 +44,7 @@ export function EditMemberModal({ isOpen, onClose, member }: EditModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in">
-      <div className="w-full max-w-md bg-bg-[#18181b] border border-white/10 rounded-xl p-6 shadow-2xl">
+      <div className="w-full max-w-md bg-[#18181b] border border-white/10 rounded-xl p-6 shadow-2xl">
         
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-heading font-bold text-white uppercase">Editar Datos</h2>
