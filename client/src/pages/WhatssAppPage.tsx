@@ -20,22 +20,29 @@ export default function WhatsAppPage() {
 
 
   useEffect(() => {
-    // Escuchar eventos del servidor
+    socket.emit('get_status');
+
     socket.on('qr_code', (qr) => {
-      setQrCode(qr);
-      setStatus('disconnected');
+        setQrCode(qr);
+        setStatus('disconnected');
     });
 
     socket.on('whatsapp_status', (newStatus) => {
-      setStatus(newStatus);
-      if (newStatus === 'connected') setQrCode('');
+        setStatus(newStatus);
+        if (newStatus === 'connected') setQrCode('');
+    });
+
+    // ✅ Si la conexión se cae y vuelve, volver a pedir estado
+    socket.on('connect', () => {
+        socket.emit('get_status');
     });
 
     return () => {
-      socket.off('qr_code');
-      socket.off('whatsapp_status');
+        socket.off('qr_code');
+        socket.off('whatsapp_status');
+        socket.off('connect');
     };
-  }, []);
+}, []);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-8 animate-in fade-in duration-500">

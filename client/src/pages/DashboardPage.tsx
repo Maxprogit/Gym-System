@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Users, TrendingUp, AlertTriangle, Activity, DollarSign } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useSocket } from '../lib/useSocket';
 
 interface DashboardStats {
   activeMembers: number;
@@ -13,6 +14,7 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
+  useSocket(); // Conectar al socket para recibir alertas en tiempo real
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -162,7 +164,7 @@ function StatCard({ title, value, icon, trend, isPrimary, className }: any) {
   return (
     <div className={cn(
         "p-6 rounded-xl border flex flex-col justify-between h-32 relative overflow-hidden group transition-all",
-        isPrimary ? "bg-[#D4FF00] text-black border-[#D4FF00]" : "bg-bg-[#18181b] border-white/10",
+        isPrimary ? "bg-[#D4aa00] text-black border-[#D4FF00]" : "bg-[#18181b] border-white/10",
         className
     )}>
       {/* Fondo decorativo */}

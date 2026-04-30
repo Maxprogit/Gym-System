@@ -1,49 +1,50 @@
-import { useEffect, useState } from 'react'; // <--- Importar useState
+import { useEffect, useState } from 'react';
 import { useMemberStore } from '../stores/useMemberStore';
 import { MemberCard } from '../components/MemberCard';
-import { AddMemberModal } from '../components/AddMemberModal'; // <--- Importar Modal
+import { AddMemberModal } from '../components/AddMemberModal';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Plus, Search, Database, X } from 'lucide-react';
 import { RenewModal } from '../components/RenewModal';
 import { EditMemberModal } from '../components/EditMemberModal';
-
+import { AIModal } from '../components/AIModal';
 
 export default function MembersPage() {
   const { members, fetchMembers, isLoading, deleteMember } = useMemberStore();
-  const [isModalOpen, setIsModalOpen] = useState(false); 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTermn, setSearchTerm] = useState('');
 
-  const [searchTermn, setSearchTerm] = useState(''); 
-
-  
   const [renewModalOpen, setRenewModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<{
     MemberID: number;
     FullName: string;
-    Phone: string;id: number, name: string
-} | null>(null);
+    Phone: string;
+    id: number;
+    name: string;
+  } | null>(null);
 
   const [editModalOpen, setEditModalOpen] = useState(false);
 
+  const [aiModal, setAiModal] = useState<{ open: boolean; name: string; phone: string }>({
+    open: false, name: '', phone: ''
+  });
 
   useEffect(() => {
     fetchMembers();
   }, [fetchMembers]);
 
-
   const filteredMembers = members.filter(member => {
-      const term = searchTermn.toLowerCase();
-      const name = member.FullName.toLowerCase();
-      const idMatch = member.MemberID.toString();
-      return name.includes(term) || idMatch.includes(term);
+    const term = searchTermn.toLowerCase();
+    const name = member.FullName.toLowerCase();
+    const idMatch = member.MemberID.toString();
+    return name.includes(term) || idMatch.includes(term);
   });
-
 
   const handleOpenRenew = (member: any) => {
     setSelectedMember({
       MemberID: member.MemberID,
       FullName: member.FullName,
-      Phone: member.Phone || '', 
+      Phone: member.Phone || '',
       id: member.MemberID,
       name: member.FullName
     });
@@ -52,36 +53,46 @@ export default function MembersPage() {
 
   const handleDelete = async (id: number) => {
     await deleteMember(id);
-    
   };
-  // Función para abrir el modal
+
   const handleOpenEdit = (member: any) => {
-    setSelectedMember({ 
-        id: member.MemberID, 
-        ...member 
+    setSelectedMember({
+      id: member.MemberID,
+      ...member
     });
     setEditModalOpen(true);
   };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      
+
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-[#27272a] pb-6">
         <div>
           <h2 className="text-3xl font-heading font-bold text-white mb-1">ATLETAS</h2>
           <p className="text-[#a1a1aa] font-mono text-sm">Gestión de membresías activas</p>
         </div>
-        <Button className="bg-[#D4FF00] text-black font-extrabold hover:bg-[#b8dd00] hover:shadow-[0_0_20px_#D4FF00] transition-all" onClick={() => setIsModalOpen(true)}>
+        <Button
+          className="bg-[#D4FF00] text-black font-extrabold hover:bg-[#b8dd00] hover:shadow-[0_0_20px_#D4FF00] transition-all"
+          onClick={() => setIsModalOpen(true)}
+        >
           <Plus className="mr-2 h-5 w-5" /> Nuevo Atleta
         </Button>
       </div>
 
+      {/* Buscador */}
       <div className="flex gap-4 items-center bg-bg-[#18181b] p-4 rounded-xl border border-[#27272a]/50">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#a1a1aa]" />
-          <Input value={searchTermn} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar por nombre o ID..." className="pl-10 bg-bg border-[#27272a]" />
+          <Input
+            value={searchTermn}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar por nombre o ID..."
+            className="pl-10 bg-bg border-[#27272a]"
+          />
           {searchTermn && (
-            <button onClick={() => setSearchTerm('')}
+            <button
+              onClick={() => setSearchTerm('')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a1a1aa] hover:text-white"
             >
               <X size={14} />
@@ -89,25 +100,25 @@ export default function MembersPage() {
           )}
         </div>
         <div className="text-sm font-mono text-[#a1a1aa] hidden md:block">
-            Resultados: <span className="text-[#D4FF00]">{filteredMembers.length}</span>
+          Resultados: <span className="text-[#D4FF00]">{filteredMembers.length}</span>
         </div>
       </div>
 
       {/* Contenido */}
       {isLoading ? (
-      <div className="text-[#D4FF00] font-mono animate-pulse">Cargando datos...</div>
+        <div className="text-[#D4FF00] font-mono animate-pulse">Cargando datos...</div>
       ) : filteredMembers.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-[#a1a1aa] border border-dashed border-white/10 rounded-xl">
-            <Database className="h-12 w-12 mb-4 opacity-20" />
-            <p>No se encontraron atletas.</p>
-            {searchTermn && <p className="text-xs mt-2">Prueba con otro nombre.</p>}
+          <Database className="h-12 w-12 mb-4 opacity-20" />
+          <p>No se encontraron atletas.</p>
+          {searchTermn && <p className="text-xs mt-2">Prueba con otro nombre.</p>}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredMembers.map((member) => (
-            <MemberCard 
+            <MemberCard
               key={member.MemberID}
-              memberId={member.MemberID} 
+              memberId={member.MemberID}
               name={member.FullName}
               plan={member.PlanName}
               daysLeft={member.DaysLeft}
@@ -115,33 +126,41 @@ export default function MembersPage() {
               onRenew={() => handleOpenRenew(member)}
               onDelete={() => handleDelete(member.MemberID)}
               onEdit={() => handleOpenEdit(member)}
+              onOpenAI={() => setAiModal({ open: true, name: member.FullName, phone: member.Phone || '' })}
             />
-        ))}
+          ))}
         </div>
       )}
 
-
-      <AddMemberModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <AddMemberModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
       />
-      
-      <RenewModal 
+
+      <RenewModal
         isOpen={renewModalOpen}
         onClose={() => setRenewModalOpen(false)}
         memberId={selectedMember?.id || null}
         memberName={selectedMember?.name || ''}
       />
 
-      <EditMemberModal 
-            isOpen={editModalOpen}
-            onClose={() => setEditModalOpen(false)}
-            member={selectedMember ? { 
-                MemberID: selectedMember.id || selectedMember.MemberID, 
-                FullName: selectedMember.name || selectedMember.FullName,
-                Phone: selectedMember.Phone || '' 
-            } : null}
-        />
+      <EditMemberModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        member={selectedMember ? {
+          MemberID: selectedMember.id || selectedMember.MemberID,
+          FullName: selectedMember.name || selectedMember.FullName,
+          Phone: selectedMember.Phone || ''
+        } : null}
+      />
+
+      <AIModal
+        isOpen={aiModal.open}
+        onClose={() => setAiModal({ open: false, name: '', phone: '' })}
+        memberName={aiModal.name}
+        memberPhone={aiModal.phone}
+      />
+
     </div>
   );
 }

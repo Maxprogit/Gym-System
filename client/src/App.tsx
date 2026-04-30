@@ -13,17 +13,23 @@ import PaymentsPage from './pages/PaymentsPage';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
 
   useEffect(() => {
-    const session = localStorage.getItem('goliat_session');
+    const session = sessionStorage.getItem('goliat_session');
     if (session) {
       setIsAuthenticated(true);
+      setUser(JSON.parse(session));
     }
     setIsLoading(false);
   }, []);
 
+  const handleLoginSuccess = (userData: any) => {
+    setIsAuthenticated(true);
+    setUser(userData);
+  };
 
   if (isLoading) {
     return (
@@ -37,7 +43,7 @@ function App() {
   if (!isAuthenticated) {
     return (
       <LoginPage 
-        onLoginSuccess={() => setIsAuthenticated(true)} 
+        onLoginSuccess={handleLoginSuccess} 
       />
     );
   }
@@ -47,7 +53,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Layout Principal que contiene el Sidebar */}
-        <Route path="/" element={<DashboardLayout />}>
+        <Route path="/" element={<DashboardLayout user={user} />}>
           
           {/* Rutas Hijas (Se renderizan dentro del Layout) */}
           <Route index element={<DashboardPage />} />

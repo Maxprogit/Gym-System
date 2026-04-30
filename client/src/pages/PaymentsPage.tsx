@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { DollarSign, Calendar, CreditCard, Search } from 'lucide-react';
+import { DollarSign, Calendar, CreditCard, Search, BanknoteArrowUp } from 'lucide-react';
 import { Input } from '../components/ui/Input';
 
 interface Payment {
@@ -103,7 +103,7 @@ export default function PaymentsPage() {
                             : 'border-blue-500/30 bg-blue-500/10 text-blue-400'
                         }`}>
                             {payment.PaymentMethod === 'Tarjeta' && <CreditCard size={10} />}
-                            {payment.PaymentMethod}
+                            {payment.PaymentMethod }
                         </span>
                     </td>
                     <td className="px-6 py-4 text-right font-mono font-bold text-[#D4FF00]">

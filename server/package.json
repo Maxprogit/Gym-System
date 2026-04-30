@@ -11,13 +11,13 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "mssql": "^12.2.0",
+    "mssql": "^12.5.0",
     "node-cron": "^4.2.1",
-    "puppeteer-core": "^24.40.0",
     "qrcode-terminal": "^0.12.0",
     "socket.io": "^4.8.3",
     "whatsapp-web.js": "github:pedroslopez/whatsapp-web.js#main"

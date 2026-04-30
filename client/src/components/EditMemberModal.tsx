@@ -3,6 +3,7 @@ import { X, Save } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { useMemberStore } from '../stores/useMemberStore';
+import { toast } from 'sonner';
 
 interface EditModalProps {
   isOpen: boolean;
@@ -39,7 +40,11 @@ export function EditMemberModal({ isOpen, onClose, member }: EditModalProps) {
     const success = await editMember(member.MemberID, formData.fullName, formData.phone);
     
     setLoading(false);
-    if (success) onClose();
+    if (success) {
+      onClose();
+    } else {
+      toast.error('No se pudieron guardar los cambios');
+    }
   };
 
   return (

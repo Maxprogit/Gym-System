@@ -1,17 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Lock, ArrowRight, AlertCircle, User, Key } from 'lucide-react';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 
 interface LoginProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess: (user: any) => void;
 }
 
 export default function LoginPage({ onLoginSuccess }: LoginProps) {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [serverStatus, setServerStatus] = useState<'online' | 'offline'>('offline');
+
+  useEffect(() => {
+    const checkServerStatus = async () => {
+      try {
+        await axios.get(`${import.meta.env.VITE_API_URL}/api/healthz`);
+        setServerStatus('online');
+      } catch (err) {
+        setServerStatus('offline');
+      }
+    };
+
+    checkServerStatus();
+    const interval = setInterval(checkServerStatus, 10000); // Check every 10 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,10 +50,10 @@ export default function LoginPage({ onLoginSuccess }: LoginProps) {
 
       if (res.data.success) {
 
-        localStorage.setItem('goliat_session', JSON.stringify(res.data.user));
+        sessionStorage.setItem('goliat_session', JSON.stringify(res.data.user));
         
      
-        onLoginSuccess();
+        onLoginSuccess(res.data.user);
       }
     } catch (err: any) {
       console.error("Error de login:", err);
@@ -122,7 +139,14 @@ export default function LoginPage({ onLoginSuccess }: LoginProps) {
 
         {/* Footer */}
         <div className="mt-8 pt-6 border-t border-white/5 flex justify-between items-center text-[10px] text-[#a1a1aa] font-mono opacity-50">
-            <span>Server: ONLINE</span>
+            <span className={
+              
+              serverStatus === 'online'
+                ? 'text-green-400 text-[11px] font-mono opacity-80 animate-pulse'
+                : 'text-red-400 text-[11px] font-mono opacity-80'
+              }
+              >Server: {serverStatus === 'online' ? 'ONLINE' : 'OFFLINE'}
+            </span>
             <span>SECURE CONNECTION v1.0</span>
         </div>
       </div>

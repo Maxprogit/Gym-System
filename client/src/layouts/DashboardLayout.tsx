@@ -1,21 +1,27 @@
 import { Link, Outlet } from 'react-router-dom';
 import { Dumbbell, Users, CreditCard, LogOut } from 'lucide-react';
 import { MessageCircle } from 'lucide-react';
+import { Toaster } from 'sonner';
 
-export default function DashboardLayout() {
+interface DashboardLayoutProps {
+  user: {username: string; role: string} | null;
+}
+
+export default function DashboardLayout({ user }: DashboardLayoutProps) {
 
   const handleLogout = () => {
-  localStorage.removeItem('goliat_session'); 
+  sessionStorage.removeItem('goliat_session'); 
   window.location.reload(); 
 };
   return (
     <div className="flex h-screen w-full overflow-hidden bg">
+      <Toaster richColors position="top-center" />
       {/* Sidebar */}
       <aside className="w-20 lg:w-64 border-r border-[#27272a] bg/95 backdrop-blur flex flex-col justify-between p-4">
         <div>
           <div className="flex items-center gap-3 mb-10 px-2">
             <img className="h-8 w-8 bg-[#D4FF00] rounded-sm shadow-[0_0_15px_#D4FF00]" src="https://thispersondoesnotexist.com/" alt="Logo"></img>
-            <h1 className="hidden lg:block font-bold text-xl tracking-tighter text-white">GOLIAT</h1>
+            <h1 className="hidden lg:block font-mono text-xl tracking-wider text-[#D4FF00] uppercase">{user?.username}</h1>
           </div>
           
           <nav className="space-y-2">

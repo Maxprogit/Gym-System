@@ -71,36 +71,30 @@ async function connectDB() {
 connectDB();
 
 const whatsappClient = new Client({
-  authStrategy: new LocalAuth(),
-  puppeteer: {
-    headless: true,
-    args: [
+    authStrategy: new LocalAuth(),
+    puppeteer: {
+        headless: true,
+        args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-gpu',
-            '--disable-blink-features=AutomationControlled'
         ],
-    timeout: 60000,
-    defaultViewport: null
-  },
+        timeout: 120000,
+        defaultViewport: null
+    }
 });
 whatsappClient.on('auth_failure', (msg) => {
     console.error('❌ Error de Autenticación de WhatsApp:', msg);
 });
 
 let isWhatsAppReady = false;
-
+let currentQr = null;
 whatsappClient.on('qr', (qr) => {
     console.log('QR Generado');
+    currentQr = qr;
     io.emit('qr_code', qr);
     isWhatsAppReady = false;
-});
-
-whatsappClient.on('ready', () => {
-    console.log('✅ WhatsApp Conectado');
-    isWhatsAppReady = true;
-    io.emit('whatsapp_status', 'connected');
 });
 
 whatsappClient.on('disconnected', () => {
@@ -125,7 +119,27 @@ async function initializeWhatsApp() {
 setTimeout(initializeWhatsApp, 2000);
 
 io.on('connection', (socket) => {
-    if (isWhatsAppReady) socket.emit('whatsapp_status', 'connected');
+    console.log('🔌 Cliente conectado');
+
+    // ✅ FIX: escuchar get_status explícitamente
+    socket.on('get_status', () => {
+        if (isWhatsAppReady) {
+            socket.emit('whatsapp_status', 'connected');
+        } else if (currentQr) {
+            socket.emit('qr_code', currentQr);
+        } else {
+            socket.emit('whatsapp_status', 'disconnected');
+        }
+    });
+
+    // También responder al conectar (para cuando carga por primera vez)
+    if (isWhatsAppReady) {
+        socket.emit('whatsapp_status', 'connected');
+    } else if (currentQr) {
+        socket.emit('qr_code', currentQr);
+    } else {
+        socket.emit('whatsapp_status', 'disconnected');
+    }
 });
 
 
@@ -391,28 +405,123 @@ app.get('/api/dashboard/stats', async (req, res) => {
     }
 });
 
+//IA 
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-cron.schedule('0 8 * * *', async () => {
-    if (!isWhatsAppReady) return;
+app.post('/api/ai/generate', async (req, res) => {
+    const { messages, memberName } = req.body;
     try {
-        const result = await pool.request().query(`
-            SELECT m.FullName, m.Phone, p.PlanName, s.EndDate 
-            FROM Members m
-            JOIN Subscriptions s ON m.MemberID = s.MemberID
-            JOIN Plans p ON s.PlanID = p.PlanID
-            WHERE DATEDIFF(day, GETDATE(), s.EndDate) = 3 AND s.IsActive = 1
-        `);
-        for (const member of result.recordset) {
-            const chatId = `${member.Phone}@c.us`; 
-            const message = `🤖 *GOLIAT GYM*: Hola ${member.FullName}, tu plan ${member.PlanName} vence en 3 días.`;
-            await whatsappClient.sendMessage(chatId, message);
+        const model = genAI.getGenerativeModel({ 
+            model: 'gemini-2.5-flash',
+            systemInstruction: `Eres un entrenador personal y nutriólogo experto trabajando en Goliat Gym.
+                Estás ayudando a crear un plan personalizado para el atleta: ${memberName}.
+                Haz las preguntas necesarias una por una para generar rutinas de gym y/o dietas personalizadas.
+                Cuando tengas toda la información necesaria genera el plan completo y estructurado.
+                Al final del plan completo agrega exactamente la línea: [PLAN_LISTO]
+                Responde siempre en español y de manera profesional pero amigable.`
+        });
+
+              const rawHistory = messages.slice(0, -1).filter((_, i) => {
+            if (i === 0 && messages[0].role === 'assistant') return false;
+            return true;
+        });
+
+        const history = rawHistory.map((msg) => ({
+            role: msg.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: msg.content }]
+        }));
+
+
+        const chat = model.startChat({ history });
+        
+        // Último mensaje del usuario
+        const lastMessage = messages[messages.length - 1].content;
+        const result = await chat.sendMessage(lastMessage);
+        const content = result.response.text();
+        const isComplete = content.includes('[PLAN_LISTO]');
+
+        res.json({
+            success: true,
+            message: content.replace('[PLAN_LISTO]', '').trim(),
+            isComplete
+        });
+    } catch (err) {
+        console.error('Error Gemini:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/ai/send-whatsapp', async (req, res) => {
+    const { phone, plan, memberName } = req.body;
+    try {
+        if (!isWhatsAppReady) {
+            return res.status(400).json({ error: 'WhatsApp no está conectado' });
         }
-    } catch (err) { console.error("Error Cron:", err); }
+        const chatId = `${phone}@c.us`;
+        const message = `💪 *GOLIAT GYM - Plan Personalizado*\n\nHola *${memberName}*, aquí está tu plan:\n\n${plan}`;
+        await whatsappClient.sendMessage(chatId, message);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error WhatsApp IA:', err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 
+// Cron WhatsApp - solo cuando está listo (a las 8am)
+whatsappClient.on('ready', () => {
+    console.log('✅ WhatsApp Conectado');
+    isWhatsAppReady = true;
+    io.emit('whatsapp_status', 'connected');
 
-app.get('/healthz', (req, res) => {
+    // Solo el cron de WhatsApp va aquí adentro
+    cron.schedule('0 8 * * *', async () => {
+        try {
+            const result = await pool.request().query(`
+                SELECT m.FullName, m.Phone, p.PlanName
+                FROM Members m
+                JOIN Subscriptions s ON m.MemberID = s.MemberID
+                JOIN Plans p ON s.PlanID = p.PlanID
+                WHERE DATEDIFF(day, GETDATE(), s.EndDate) = 3 AND s.IsActive = 1
+            `);
+            for (const member of result.recordset) {
+                const chatId = `${member.Phone}@c.us`;
+                const message = `🤖 *GOLIAT GYM*: Hola ${member.FullName}, tu plan ${member.PlanName} vence en 3 días.`;
+                await whatsappClient.sendMessage(chatId, message);
+            }
+        } catch (err) { 
+            console.error("Error Cron WhatsApp:", err); 
+        }
+    });
+});
+
+// Cron Socket.io - completamente independiente, sin WhatsApp
+cron.schedule('*/5 * * * *', async () => {
+    try {
+        const result = await pool.request().query(`
+            SELECT m.FullName, p.PlanName,
+            DATEDIFF(day, GETDATE(), s.EndDate) as DaysLeft
+            FROM Members m
+            JOIN Subscriptions s ON m.MemberID = s.MemberID
+            JOIN Plans p ON s.PlanID = p.PlanID
+            WHERE s.IsActive = 1
+            AND DATEDIFF(day, GETDATE(), s.EndDate) BETWEEN 0 AND 3
+        `);
+        for (const member of result.recordset) {
+            io.emit('expiring_alert', {
+                name: member.FullName,
+                plan: member.PlanName,
+                daysLeft: member.DaysLeft
+            });
+        }
+    } catch (error) {
+        console.error("Error Socket Cron:", error);
+    }
+});
+
+
+app.get('/api/healthz', (req, res) => {
     res.status(200).send('OK');
 });
 
