@@ -25,8 +25,8 @@ export default function MembersPage() {
 
   const [editModalOpen, setEditModalOpen] = useState(false);
 
-  const [aiModal, setAiModal] = useState<{ open: boolean; name: string; phone: string }>({
-    open: false, name: '', phone: ''
+  const [aiModal, setAiModal] = useState<{ open: boolean; name: string; phone: string, memberId: number }>({
+    open: false, name: '', phone: '', memberId: 0
   });
 
   useEffect(() => {
@@ -126,7 +126,7 @@ export default function MembersPage() {
               onRenew={() => handleOpenRenew(member)}
               onDelete={() => handleDelete(member.MemberID)}
               onEdit={() => handleOpenEdit(member)}
-              onOpenAI={() => setAiModal({ open: true, name: member.FullName, phone: member.Phone || '' })}
+              onOpenAI={() => setAiModal({ open: true, name: member.FullName, phone: member.Phone || '' , memberId: member.MemberID })}
             />
           ))}
         </div>
@@ -156,9 +156,10 @@ export default function MembersPage() {
 
       <AIModal
         isOpen={aiModal.open}
-        onClose={() => setAiModal({ open: false, name: '', phone: '' })}
+        onClose={() => setAiModal({ open: false, name: '', phone: '', memberId: 0 })}
         memberName={aiModal.name}
         memberPhone={aiModal.phone}
+        memberId={aiModal.memberId}
       />
 
     </div>

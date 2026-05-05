@@ -36,10 +36,10 @@ export default function DashboardPage() {
         <p className="text-[#e4e4e7] font-mono text-sm">Resumen de actividad en tiempo real</p>
       </div>
 
-      {/* Grid de KPIs (Indicadores Clave) */}
+    
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        {/* Card 1: Activos */}
+        
         <StatCard 
           title="Atletas Activos" 
           value={stats?.activeMembers} 
@@ -47,7 +47,6 @@ export default function DashboardPage() {
           trend="+5% vs mes anterior"
         />
 
-        {/* Card 2: Ingresos (Mes) */}
         <StatCard 
           title="Ingresos (30d)" 
           value={`$${stats?.monthlyRevenue}`} 
@@ -55,7 +54,6 @@ export default function DashboardPage() {
           isPrimary
         />
 
-        {/* Card 3: Riesgo */}
         <StatCard 
           title="Por Vencer (5 días)" 
           value={stats?.expiringSoon} 
@@ -64,10 +62,8 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Sección Inferior: Lista de Urgencia */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-        
-        {/* Tabla de Vencimientos */}
+     
         <div className="bg-bg-[#18181b]/50 border border-white/10 rounded-xl p-6 backdrop-blur-sm">
           <h3 className="text-white font-bold flex items-center gap-2 mb-4">
             <Activity size={18} className="text-orange-400" /> Vencimientos Próximos
@@ -97,7 +93,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Gráfica de Rendimiento */}
     <div className="bg-bg-[#18181b]/50 border border-white/10 rounded-xl p-6 backdrop-blur-sm min-h-[350px] flex flex-col">
         <h3 className="text-white font-bold flex items-center gap-2 mb-6">
             <TrendingUp size={18} className="text-[#D4FF00]" /> Tendencia de Ingresos
@@ -159,7 +154,7 @@ export default function DashboardPage() {
   );
 }
 
-// Subcomponente de Tarjeta KPI
+
 function StatCard({ title, value, icon, trend, isPrimary, className }: any) {
   return (
     <div className={cn(
@@ -167,7 +162,6 @@ function StatCard({ title, value, icon, trend, isPrimary, className }: any) {
         isPrimary ? "bg-[#D4aa00] text-black border-[#D4FF00]" : "bg-[#18181b] border-white/10",
         className
     )}>
-      {/* Fondo decorativo */}
       <div className="absolute right-[-20px] top-[-20px] opacity-10 group-hover:scale-110 transition-transform duration-500">
         {icon && <div className="scale-[3]">{icon}</div>}
       </div>

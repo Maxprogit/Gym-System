@@ -25,7 +25,7 @@ export default function LoginPage({ onLoginSuccess }: LoginProps) {
     };
 
     checkServerStatus();
-    const interval = setInterval(checkServerStatus, 10000); // Check every 10 seconds
+    const interval = setInterval(checkServerStatus, 10000); 
 
     return () => clearInterval(interval);
   }, []);

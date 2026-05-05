@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { QRCodeSVG as QRCode } from 'qrcode.react'; // Librería para dibujar el QR
+import { toast } from 'sonner';
 
 
-import { Smartphone, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
+import { Smartphone, CheckCircle, Loader2, RefreshCw, LogOut } from 'lucide-react';
 
 //Boton para probar los envios de wp
 import { Send, Phone } from 'lucide-react';
@@ -42,7 +43,23 @@ export default function WhatsAppPage() {
         socket.off('whatsapp_status');
         socket.off('connect');
     };
+
+    
 }, []);
+
+const handleLogout = async () => {
+        try {
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/logout`, {
+              METHOD: 'POST'
+            });
+            toast.success('Sesión de WhatsApp cerrada exitosamente');
+            setStatus('disconnected');
+            setQrCode('');
+        } catch (error) {
+          toast.error('Error al cerrar sesión de WhatsApp');
+            console.error('Error al cerrar sesión de WhatsApp:', error);
+        }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-8 animate-in fade-in duration-500">
@@ -101,6 +118,15 @@ export default function WhatsAppPage() {
             </span>
         </span>
       </div>
+      {status === 'connected' && (
+        <button   onClick={handleLogout}
+        className='flex items-center gap-2 px-4 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all font-mono text-sm'
+        >
+        <LogOut size={16} />
+        Desvincular Whatssap
+        </button>
+        )
+      }
     </div>
   );
 }

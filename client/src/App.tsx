@@ -10,6 +10,7 @@ import DashboardPage from './pages/DashboardPage';
 import MembersPage from './pages/MembersPage';
 import WhatsAppPage from './pages/WhatssAppPage';
 import PaymentsPage from './pages/PaymentsPage';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -53,18 +54,17 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Layout Principal que contiene el Sidebar */}
-        <Route path="/" element={<DashboardLayout user={user} />}>
-          
+        <Route path="/" element={<ProtectedRoute><DashboardLayout user={user} /></ProtectedRoute>}>
           {/* Rutas Hijas (Se renderizan dentro del Layout) */}
-          <Route index element={<DashboardPage />} />
-          <Route path="members" element={<MembersPage />} />
-          <Route path="payments" element={<PaymentsPage />} />
-          <Route path="whatsapp" element={<WhatsAppPage />} />
+          <Route index element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          <Route path="members" element={<ProtectedRoute><MembersPage /></ProtectedRoute>} />
+          <Route path="payments" element={<ProtectedRoute><PaymentsPage /></ProtectedRoute>} />
+          <Route path="whatsapp" element={<ProtectedRoute><WhatsAppPage /></ProtectedRoute>} />
 
         </Route>
         
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<ProtectedRoute><Navigate to="/" replace /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );

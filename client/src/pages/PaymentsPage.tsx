@@ -48,7 +48,7 @@ export default function PaymentsPage() {
         <div className="bg-[#121212] border border-[#D4FF00]/20 px-4 py-2 rounded-lg flex items-center gap-3">
             <div className="p-2 bg-[#D4FF00]/10 rounded-full text-[#D4FF00]"><DollarSign size={18} /></div>
             <div>
-                <p className="text-[10px] text-[#a1a1aa] uppercase">Total Ingresos (Vista)</p>
+                <p className="text-[10px] text-[#a1a1aa] uppercase">Total Ingresos</p>
                 <p className="text-xl font-bold text-white font-mono">
                     ${filteredPayments.reduce((acc, curr) => acc + curr.Amount, 0).toLocaleString()}
                 </p>

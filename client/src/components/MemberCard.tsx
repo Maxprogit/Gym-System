@@ -11,7 +11,7 @@ interface MemberProps {
   onRenew: () => void;
   onDelete: () => void;
   onEdit: () => void;
-  onOpenAI: () => void; // ← nuevo
+  onOpenAI: () => void; 
 }
 
 export function MemberCard({ name, plan, daysLeft, status, onRenew, onDelete, onEdit, onOpenAI }: MemberProps) {
@@ -19,7 +19,8 @@ export function MemberCard({ name, plan, daysLeft, status, onRenew, onDelete, on
   const [showMenu, setShowMenu] = useState(false);
 
   return (
-    <div className="relative group bg-[#18181b]/50 backdrop-blur-md border border-white/10 rounded-xl p-5 transition-all duration-300 hover:border-[#D4FF00]/50 hover:shadow-[0_0_30px_rgba(212,255,0,0.15)] hover:-translate-y-1">
+    <div className={cn("relative group bg-[#18181b]/50 backdrop-blur-md border border-white/10 rounded-xl p-5 transition-all duration-300 hover:border-[#D4FF00]/50 hover:shadow-[0_0_30px_rgba(212,255,0,0.15)]", 
+    showMenu ? "z-20" : "hover-translate-y-1")}>
       <div className={cn(
         "absolute left-0 top-4 bottom-4 w-1 rounded-r-full shadow-[0_0_10px_currentColor]",
         isDanger ? "bg-red-500 text-red-500" : "bg-[#D4FF00] text-[#D4FF00]"
@@ -41,7 +42,7 @@ export function MemberCard({ name, plan, daysLeft, status, onRenew, onDelete, on
 
           {showMenu && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+              <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
               <div className="absolute right-0 mt-2 w-48 bg-[#121212] border border-white/10 rounded-lg shadow-xl z-20 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 <button onClick={() => { setShowMenu(false); onRenew(); }} className="w-full text-left px-4 py-3 text-sm text-white hover:bg-[#D4FF00] hover:text-black flex items-center gap-2 transition-colors font-medium">
                   <RefreshCcw size={16} /> Renovar / Pagar

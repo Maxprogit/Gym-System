@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { X, Send, Bot, User, Loader2, MessageCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, Send, Bot, User, Loader2, MessageCircle, FileText } from 'lucide-react';
 import { API } from '../config/api';
 import { toast } from 'sonner';
 
@@ -13,28 +13,28 @@ interface AIModalProps {
     onClose: () => void;
     memberName: string;
     memberPhone: string;
+    memberId: number;  
 }
 
-export function AIModal({ isOpen, onClose, memberName, memberPhone }: AIModalProps) {
-    const [messages, setMessages] = useState<Message[]>([]);
+export function AIModal({ isOpen, onClose, memberName, memberPhone, memberId }: AIModalProps) {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
-    const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
-
-      useEffect(() => {
-        if (isOpen && memberName) {
-            setMessages([
-                {
-                    role: 'assistant',
-                    content: `Hola! Soy tu asistente de Goliat Gym 💪 Voy a ayudarte a crear un plan personalizado para ${memberName}. ¿Necesitas una rutina de entrenamiento, un plan de dieta, o ambos?`
-                }
-            ]);
-            setInput('');
-            setIsComplete(false);
-        }
-    }, [isOpen, memberName]);
-
+    const [sending, setSending] = useState(false);
+    const [planType, setPlanType] = useState('Plan Personalizado');
+    const [messages, setMessages] = useState<Message[]>([]);
+    useEffect(() => {
+    if (isOpen && memberName) {
+        setMessages([{
+            role: 'assistant',
+            content: `Hola! ${memberName} Soy tu entrenador Voy a ayudarte a crear un plan personalizado. ¿Necesitas una rutina de entrenamiento, un plan de dieta, o ambos?`
+        }]);
+        setIsComplete(false);
+        setInput('');
+        setPlanType('Plan Personalizado');
+    }
+}, [isOpen, memberName]);
+    
 
     if (!isOpen) return null;
 
@@ -51,21 +51,25 @@ export function AIModal({ isOpen, onClose, memberName, memberPhone }: AIModalPro
             const res = await fetch(`${API.base}/api/ai/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    messages: updatedMessages,
-                    memberName
-                })
+                body: JSON.stringify({ messages: updatedMessages, memberName, memberId })
             });
 
             const data = await res.json();
+            const assistantMessage = { role: 'assistant' as const, content: data.message };
+            setMessages(prev => [...prev, assistantMessage]);
 
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: data.message
-            }]);
-
-            if (data.isComplete) setIsComplete(true);
-
+            if (data.isComplete) {
+                setIsComplete(true);
+                // Detectar tipo de plan
+                const content = data.message.toLowerCase();
+                if (content.includes('dieta') && content.includes('rutina')) {
+                    setPlanType('Rutina y Dieta');
+                } else if (content.includes('dieta')) {
+                    setPlanType('Dieta');
+                } else {
+                    setPlanType('Rutina de Entrenamiento');
+                }
+            }
         } catch (err) {
             toast.error('Error al conectar con la IA');
         } finally {
@@ -73,26 +77,57 @@ export function AIModal({ isOpen, onClose, memberName, memberPhone }: AIModalPro
         }
     };
 
-    const sendWhatsApp = async () => {
-        setSendingWhatsApp(true);
-        try {
-            const plan = messages
-                .filter(m => m.role === 'assistant')
-                .map(m => m.content)
-                .join('\n\n');
+    const getFullPlan = () => {
+        return messages
+            .filter(m => m.role === 'assistant')
+            .map(m => m.content)
+            .join('\n\n');
+    };
 
-            await fetch(`${API.base}/api/ai/send-whatsapp`, {
+    const handleSavePlan = async () => {
+        try {
+            await fetch(`${API.base}/api/ai/save-plan`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: memberPhone, plan, memberName })
+                body: JSON.stringify({
+                    memberId,
+                    planType,
+                    planContent: getFullPlan()
+                })
+            });
+            toast.success('Plan guardado correctamente ✅');
+        } catch (err) {
+            toast.error('Error al guardar el plan');
+        }
+    };
+
+    const handleSendPDF = async () => {
+        setSending(true);
+        try {
+
+            await handleSavePlan();
+
+            const res = await fetch(`${API.base}/api/ai/send-plan-pdf`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    phone: memberPhone,
+                    planContent: getFullPlan(),
+                    memberName,
+                    planType
+                })
             });
 
-            toast.success(`Plan enviado a ${memberName} por WhatsApp!`);
-            onClose();
+            if (res.ok) {
+                toast.success(`PDF enviado a ${memberName} por WhatsApp 📄`);
+                onClose();
+            } else {
+                toast.error('Error al enviar el PDF');
+            }
         } catch (err) {
-            toast.error('Error al enviar por WhatsApp');
+            toast.error('Error al enviar el PDF');
         } finally {
-            setSendingWhatsApp(false);
+            setSending(false);
         }
     };
 
@@ -114,7 +149,7 @@ export function AIModal({ isOpen, onClose, memberName, memberPhone }: AIModalPro
                             <Bot size={18} className="text-black" />
                         </div>
                         <div>
-                            <h2 className="text-white font-bold font-heading uppercase">Asistente IA</h2>
+                            <h2 className="text-white font-bold font-heading uppercase">Entrenador</h2>
                             <p className="text-[#a1a1aa] text-xs font-mono">{memberName}</p>
                         </div>
                     </div>
@@ -127,14 +162,12 @@ export function AIModal({ isOpen, onClose, memberName, memberPhone }: AIModalPro
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                     {messages.map((msg, i) => (
                         <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                            {/* Avatar */}
                             <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${msg.role === 'assistant' ? 'bg-[#D4FF00]' : 'bg-[#27272a]'}`}>
-                                {msg.role === 'assistant' 
+                                {msg.role === 'assistant'
                                     ? <Bot size={14} className="text-black" />
                                     : <User size={14} className="text-white" />
                                 }
                             </div>
-                            {/* Burbuja */}
                             <div className={`max-w-[80%] px-4 py-3 rounded-xl text-sm font-mono whitespace-pre-wrap ${
                                 msg.role === 'assistant'
                                     ? 'bg-[#27272a] text-white rounded-tl-none'
@@ -145,7 +178,6 @@ export function AIModal({ isOpen, onClose, memberName, memberPhone }: AIModalPro
                         </div>
                     ))}
 
-                    {/* Loading */}
                     {loading && (
                         <div className="flex gap-3">
                             <div className="w-7 h-7 rounded-full bg-[#D4FF00] flex items-center justify-center">
@@ -158,24 +190,26 @@ export function AIModal({ isOpen, onClose, memberName, memberPhone }: AIModalPro
                     )}
                 </div>
 
-                {/* Botón WhatsApp cuando el plan está listo */}
                 {isComplete && (
-                    <div className="px-4 py-2 border-t border-[#27272a]">
+                    <div className="px-4 py-3 border-t border-[#27272a] flex gap-2">
                         <button
-                            onClick={sendWhatsApp}
-                            disabled={sendingWhatsApp}
-                            className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg transition-all font-mono text-sm disabled:opacity-50"
+                            onClick={handleSavePlan}
+                            className="flex-1 flex items-center justify-center gap-2 bg-[#27272a] hover:bg-[#3f3f46] text-white font-bold py-2 rounded-lg transition-all font-mono text-sm"
                         >
-                            {sendingWhatsApp 
-                                ? <Loader2 size={16} className="animate-spin" />
-                                : <MessageCircle size={16} />
-                            }
-                            {sendingWhatsApp ? 'Enviando...' : `Enviar plan a ${memberName} por WhatsApp`}
+                            <FileText size={16} />
+                            Guardar Plan
+                        </button>
+                        <button
+                            onClick={handleSendPDF}
+                            disabled={sending}
+                            className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded-lg transition-all font-mono text-sm disabled:opacity-50"
+                        >
+                            {sending ? <Loader2 size={16} className="animate-spin" /> : <MessageCircle size={16} />}
+                            {sending ? 'Enviando...' : 'Enviar PDF'}
                         </button>
                     </div>
                 )}
 
-                {/* Input */}
                 <div className="p-4 border-t border-[#27272a] flex gap-3">
                     <textarea
                         className="flex-1 bg-[#09090b] border border-[#27272a] rounded-lg px-3 py-2 text-white text-sm font-mono resize-none focus:outline-none focus:border-[#D4FF00] transition-all"
@@ -194,7 +228,6 @@ export function AIModal({ isOpen, onClose, memberName, memberPhone }: AIModalPro
                         <Send size={18} />
                     </button>
                 </div>
-
             </div>
         </div>
     );
