@@ -7,6 +7,18 @@ const cors = require('cors');
 const cron = require('node-cron');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const bcrypt = require('bcryptjs');
+const {JSDOM } = require('jsdom');
+const rateLimit = require('express-rate-limit');
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, 
+    max: 100, 
+    message: 'Demasiadas solicitudes desde esta IP, por favor intenta de nuevo más tarde.'
+}); 
+
+const crteateDOMPurify = require('dompurify');
+const window = new JSDOM('').window;
+const DOMPurify = crteateDOMPurify(window);
 
 const app = express();
 app.use(cors({
@@ -17,6 +29,7 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
+app.use('/api/', limiter);
 
 
 const server = http.createServer(app);
@@ -103,7 +116,6 @@ whatsappClient.on('disconnected', () => {
     io.emit('whatsapp_status', 'disconnected');
 });
 
-// Inicializar WhatsApp con reintentos (no bloquea servidor)
 async function initializeWhatsApp() {
     try {
         console.log('🔄 Iniciando WhatsApp...');
@@ -115,13 +127,13 @@ async function initializeWhatsApp() {
     }
 }
 
-// No bloquear el servidor si WhatsApp falla
+
 setTimeout(initializeWhatsApp, 2000);
 
 io.on('connection', (socket) => {
     console.log('🔌 Cliente conectado');
 
-    // ✅ FIX: escuchar get_status explícitamente
+
     socket.on('get_status', () => {
         if (isWhatsAppReady) {
             socket.emit('whatsapp_status', 'connected');
@@ -132,7 +144,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // También responder al conectar (para cuando carga por primera vez)
     if (isWhatsAppReady) {
         socket.emit('whatsapp_status', 'connected');
     } else if (currentQr) {
@@ -200,17 +211,15 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/admin/create', async (req, res) => {
     const { username, password } = req.body;
     try {
-        // 1. Encriptar contraseña antes de guardar
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // 2. Guardar en BD
         await pool.request()
             .input('Username', sql.NVarChar, username)
             .input('PasswordHash', sql.NVarChar, hashedPassword)
             .query('INSERT INTO Users (Username, PasswordHash, Role) VALUES (@Username, @PasswordHash, "Admin")');
 
-        res.json({ success: true, message: "Usuario admin creado con seguridad robusta" });
+        res.json({ success: true, message: "Usuario admin creado" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -347,6 +356,7 @@ app.delete('/api/members/:id', async (req, res) => {
     try {
         await pool.request().input('ID', sql.Int, id).query('DELETE FROM Payments WHERE MemberID = @ID');
         await pool.request().input('ID', sql.Int, id).query('DELETE FROM Subscriptions WHERE MemberID = @ID');
+        await pool.request().input('ID', sql.Int, id).query('DELETE FROM AthletsPlans WHERE MemberID = @ID');
         await pool.request().input('ID', sql.Int, id).query('DELETE FROM Members WHERE MemberID = @ID');
         res.json({ success: true });
     } catch (err) {
@@ -410,17 +420,49 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 app.post('/api/ai/generate', async (req, res) => {
-    const { messages, memberName } = req.body;
+    
+    const { messages, memberName, memberId } = req.body;
+
+    let historialPlanes = '';
     try {
+   if (memberId) {
+        const plansResult = await pool.request()
+            .input('MemberID', sql.Int, memberId)
+            .query(`
+                SELECT TOP 3 PlanType, PlanContent, CreatedAt
+                FROM AthletsPlans
+                WHERE MemberID = @MemberID
+                ORDER BY CreatedAt DESC
+            `);
+
+            if (plansResult.recordset.length > 0) {
+                historialPlanes = `HISTORIAL DE PLANES ANTERIORES DEL ATLETA:\n`;
+                plansResult.recordset.forEach((plan, i) => {
+                    historialPlanes += `\nPlan ${i + 1} (${plan.PlanType} - ${new Date(plan.CreatedAt).toLocaleDateString('es-MX')}):\n${plan.PlanContent}\n`;
+                });
+                historialPlanes += `\nBásate en este historial para mejorar y personalizar el nuevo plan sin preguntar lo que ya sabes.`;
+            }
+        }
         const model = genAI.getGenerativeModel({ 
             model: 'gemini-2.5-flash',
             systemInstruction: `Eres un entrenador personal y nutriólogo experto trabajando en Goliat Gym.
                 Estás ayudando a crear un plan personalizado para el atleta: ${memberName}.
-                Haz las preguntas necesarias una por una para generar rutinas de gym y/o dietas personalizadas.
-                Cuando tengas toda la información necesaria genera el plan completo y estructurado.
-                Al final del plan completo agrega exactamente la línea: [PLAN_LISTO]
-                Responde siempre en español y de manera profesional pero amigable.`
-        });
+                
+                INSTRUCCIONES IMPORTANTES:
+                - NUNCA digas que no tienes acceso al historial del atleta
+                - NUNCA digas que cada conversación es nueva
+                - Si hay historial disponible, ÚSALO directamente sin pedirle al atleta que te cuente su plan anterior
+                - Haz preguntas solo sobre información que NO esté en el historial
+                - Cuando tengas toda la información genera el plan completo y estructurado
+                - No agreges las respuestas de el usuario al plan, solo la información relevante que necesites para crear el plan
+                - Al final del plan completo agrega exactamente la línea: [PLAN_LISTO]
+                - Responde siempre en español y de manera profesional pero amigable.
+                
+                ${historialPlanes.length > 0 
+                    ? `TIENES ACCESO AL SIGUIENTE HISTORIAL DEL ATLETA, ÚSALO:\n${historialPlanes}` 
+                    : 'Este atleta no tiene planes anteriores registrados, empieza desde cero.'
+                }`
+            });
 
               const rawHistory = messages.slice(0, -1).filter((_, i) => {
             if (i === 0 && messages[0].role === 'assistant') return false;
@@ -435,7 +477,7 @@ app.post('/api/ai/generate', async (req, res) => {
 
         const chat = model.startChat({ history });
         
-        // Último mensaje del usuario
+       
         const lastMessage = messages[messages.length - 1].content;
         const result = await chat.sendMessage(lastMessage);
         const content = result.response.text();
@@ -468,14 +510,149 @@ app.post('/api/ai/send-whatsapp', async (req, res) => {
     }
 });
 
+app.post('/api/whatsapp/logout', async (req, res) => {
+    try {
+        await whatsappClient.logout();
+        isWhatsAppReady = false;
+        currentQr = null;
+        io.emit('whatsapp_status', 'disconnected');
+        res.json({ success: true });
+        
+        setTimeout(initializeWhatsApp, 2000);
+    } catch (error) {
+        console.error('Error al cerrar sesión de WhatsApp:', error);
+        res.status(500).json({ error: 'Error al cerrar sesión de WhatsApp' });
+    }
+});
 
-// Cron WhatsApp - solo cuando está listo (a las 8am)
+const PDFDocument = require('pdfkit');
+
+
+app.post('/api/ai/save-plan', async (req, res) => {
+    const { memberId, planType, planContent } = req.body;
+    try {
+
+        const cleanContent = DOMPurify.sanitize(planContent);
+
+        await pool.request()
+            .input('MemberID', sql.Int, memberId)
+            .input('PlanType', sql.NVarChar, planType)
+            .query('DELETE FROM AthletsPlans WHERE MemberID = @MemberID AND PlanType = @PlanType'); 
+
+        await pool.request()
+            .input('MemberID', sql.Int, memberId)
+            .input('PlanType', sql.NVarChar, planType)
+            .input('PlanContent', sql.NVarChar(sql.MAX), cleanContent)
+            .query('INSERT INTO AthletsPlans (MemberID, PlanType, PlanContent, CreatedAt) VALUES (@MemberID, @PlanType, @PlanContent, GETDATE())');
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error al guardar el plan:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/ai/plans/:memberId', async (req, res) => {
+    const { memberId } = req.params;
+    try {
+        const result = await pool.request()
+        .input('MemberID', sql.Int, memberId)
+        .query(`
+                SELECT PlanID, PlanType, PlanContent, CreatedAt
+                FROM AthletsPlans
+                WHERE MemberID = @MemberID
+                ORDER BY CreatedAt DESC
+            `);
+            res.json(result.recordset);
+    } catch (error) {
+        console.error('Error al obtener el historial de planes:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+app.post('/api/ai/send-plan-pdf', async (req, res) => {
+    const { phone, planContent, memberName, planType } = req.body;
+    try {
+        if (!isWhatsAppReady) {
+            return res.status(400).json({ error: 'WhatsApp no está conectado' });
+        };
+
+        //Genera un pdf en memoria
+        const doc = new PDFDocument({margin: 50});
+        const chunks = [];
+
+        doc.on('data', chunk => chunks.push(chunk));
+        doc.on('end', async () => {
+            const pdfBuffer = Buffer.concat(chunks);
+            const base64Pdf = pdfBuffer.toString('base64');
+            const MessageMedia = require('whatsapp-web.js').MessageMedia;
+            const media = new MessageMedia('application/pdf', base64Pdf, `${planType}_${memberName.replace(/\s+/g, '_')}.pdf`);
+
+        const chatId = `${phone}@c.us`;
+        await whatsappClient.sendMessage(chatId, media, {
+        caption: `💪 *GOLIAT GYM*\nHola *${memberName}*, aquí tienes tu ${planType}.`
+        });
+
+        res.json({ success: true });
+    });
+
+    //contenido del pdf
+    //header
+    doc.fontSize(24)
+    .font('Helvetica-Bold')
+    .fillColor('#000000')
+    .text(`GOLIAT GYM`, { align: 'center' });
+
+    doc.fontSize(14)
+    .font('Helvetica')
+    .fillColor('#555555')
+    .text(`Plan Personalizado: ${planType}`, { align: 'center' });
+
+    doc.moveDown();
+
+    doc.fontSize(12)
+    .fillColor('#333333')
+    .text(`Atleta: ${memberName}`, { align: 'left' });
+
+    doc.text(`Fecha: ${new Date().toLocaleDateString('es-Mx')}`, { align: 'left' });
+
+    doc.moveDown();
+
+    //linea separadora
+    doc.moveTo(50, doc.y)
+    .lineTo(550, doc.y)
+    .strokeColor('#D4FF00')
+    .lineWidth(2)
+    .stroke();
+
+
+    doc.moveDown();
+
+
+    //conternido del plan
+    doc.fontSize(11)
+    .font('Helvetica')
+    .fillColor('#000000')
+    .text(planContent, {
+        align: 'left',
+        lineGap: 4
+    });
+
+    doc.end();
+
+    } catch (error) {
+        console.error('Error al generar PDF:', error);
+        res.status(500).json({ error: 'Error al generar PDF' });
+    }
+});
+
+
 whatsappClient.on('ready', () => {
     console.log('✅ WhatsApp Conectado');
     isWhatsAppReady = true;
     io.emit('whatsapp_status', 'connected');
 
-    // Solo el cron de WhatsApp va aquí adentro
+
     cron.schedule('0 8 * * *', async () => {
         try {
             const result = await pool.request().query(`
@@ -496,7 +673,6 @@ whatsappClient.on('ready', () => {
     });
 });
 
-// Cron Socket.io - completamente independiente, sin WhatsApp
 cron.schedule('*/5 * * * *', async () => {
     try {
         const result = await pool.request().query(`
@@ -523,6 +699,15 @@ cron.schedule('*/5 * * * *', async () => {
 
 app.get('/api/healthz', (req, res) => {
     res.status(200).send('OK');
+});
+
+
+process.on('uncaughtException', (err) => {
+    console.error('❌ Error no capturado:', err);
+});
+
+process.on('unhandledRejection', (err) => {
+    console.error('❌ Promesa rechazada:', err);
 });
 
 const PORT = 3001;
