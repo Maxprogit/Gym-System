@@ -186,7 +186,7 @@ Crea el archivo `.env` en la carpeta `server`:
 DB_USER=sa
 DB_PASS=tu_contraseña
 DB_SERVER=localhost\SQLEXPRESS
-DB_NAME=GoliatDB
+DB_NAME=TU_DB
 GEMINI_API_KEY=tu_api_key_de_gemini
 ```
 
