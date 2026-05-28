@@ -149,8 +149,8 @@ export function AIModal({ isOpen, onClose, memberName, memberPhone, memberId }: 
                             <Bot size={18} className="text-black" />
                         </div>
                         <div>
-                            <h2 className="text-white font-bold font-heading uppercase">Entrenador</h2>
-                            <p className="text-[#a1a1aa] text-xs font-mono">{memberName}</p>
+                            <h2 className="text-white font-bold font-heading uppercase">Couch</h2>
+                            <p className="text-[#a1a1aa] text-xs font-mono">Atleta {memberName}</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="text-[#a1a1aa] hover:text-white transition-colors">
