@@ -649,11 +649,6 @@ app.get('/api/ai/plans/:memberId', async (req, res) => {
 // });
 
 
-// ============================================================
-// GOLIAT GYM - Endpoint: /api/ai/send-plan-pdf  (Node.js)
-// Dependencias: pdfkit, whatsapp-web.js
-// IA de nutricion: Gemini 2.0 Flash (GEMINI_API_KEY en .env)
-// ============================================================
 
 app.post('/api/ai/send-plan-pdf', async (req, res) => {
     const { phone, planContent, memberName, planType } = req.body;
@@ -684,15 +679,7 @@ app.post('/api/ai/send-plan-pdf', async (req, res) => {
 });
 
 
-// ============================================================
-//  HELPER 0 - Gemini 2.5 Flash: parsear nutricion a JSON
-//  FIXES vs version anterior:
-//  - URL y estructura de request correcta para Gemini
-//  - Lectura de respuesta por candidates[0].content.parts[0].text
-//  - Solo envia la seccion de nutricion (ahorro de tokens)
-//  - responseMimeType:'application/json' evita razonamiento extra
-//  - maxOutputTokens:800 limita costo
-// ============================================================
+
 async function parseMealsWithAI(planContent) {
     try {
         // FIX 1: regex corregido para capturar sección de nutrición
@@ -750,8 +737,7 @@ async function parseMealsWithAI(planContent) {
 
         const data = await response.json();
 
-        // Log para debug (puedes removerlo en producción)
-        console.log('Gemini raw response:', JSON.stringify(data).substring(0, 300));
+      
 
         const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
@@ -829,9 +815,7 @@ function validateAndReturn(parsed) {
     return valid;
 }
 
-// ============================================================
 //  HELPER 1 - Extrae solo el plan final (sin preguntas del chat)
-// ============================================================
 function extractFinalPlan(rawContent) {
     const lines = rawContent.split('\n');
     let startIndex = -1;
@@ -927,7 +911,7 @@ function generateStructuredPDF({ memberName, planType, planContent, mealsData })
                 i++; continue;
             }
 
-            // ✅ REEMPLAZA CON ESTO — H3 también detecta nutrición:
+            // H3 también detecta nutrición:
             const NUTRITION_REGEX = /NUTRICI[ÓO]N|DIETA|COMIDAS|nutrici[oó]n|plan.*nutri|alimenta/i;
 
             if (/^#{3}\s/.test(line) && !/^#{4}/.test(line)) {
