@@ -85,8 +85,8 @@ const handleLogout = async () => {
               <div className="w-20 h-20 bg-[#D4FF00]/20 rounded-full flex items-center justify-center mb-4 text-[#D4FF00] animate-pulse">
                 <CheckCircle size={48} />
               </div>
-              <p className="font-bold text-black text-lg">SISTEMA ONLINE</p>
-              <p className="text-xs text-gray-500 mt-2 font-mono">Listo para enviar mensajes</p>
+              <p className="font-bold text-black text-lg">Conectado</p>
+              <p className="text-xs text-gray-500 mt-2 font-mono">Todo listo</p>
             </div>
           ) : qrCode ? (
             <>
