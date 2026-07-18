@@ -10,9 +10,12 @@ const { configureRealtime } = require('./src/realtime');
 const app = createApp();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: env.clientOrigins, credentials: true },
+  cors: {
+    origin: env.clientOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
 });
-
 configureRealtime(io);
 if (hasSqlServerConfig()) {
   getSqlPool().catch((error) => {
