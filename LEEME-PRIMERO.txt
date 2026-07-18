@@ -1,0 +1,31 @@
+GOLIAT SYSTEM 8.1 / CONTEXT SHIFT — SIN BASE DE DATOS INTEGRADA
+
+1. Extrae el archivo en una carpeta nueva y vacía. No mezcles esta versión con
+   una entrega anterior porque Windows puede conservar archivos obsoletos.
+
+2. Copia únicamente tu server/.env original dentro de server/. Goliat no añade
+   database, migraciones, tablas ni scripts SQL. El repositorio externo de
+   ejercicios conserva sus ejemplos originales, pero el sistema no los ejecuta.
+
+3. Instala e inicia:
+
+   npm run install:all
+   npm run dev:server
+   npm run dev:client
+
+4. El sistema usa exclusivamente tus tablas existentes: Users, Plans, Members,
+   Subscriptions, Payments y AthletsPlans. Archivar un atleta sólo establece sus
+   suscripciones como inactivas; conserva su identidad, cobros y planes.
+
+5. Tarjeta y transferencia abren la terminal Simulates antes de registrar el
+   alta o renovación. La tarjeta 4242 4242 4242 4242 sirve para probar; usa una
+   fecha futura y cualquier CVV de 3 o 4 dígitos. Los datos no se almacenan.
+
+6. WhatsApp conserva únicamente la sesión técnica en server/.wwebjs_auth para
+   evitar repetir el QR. No recopila modelo, número, IP, ubicación ni contexto
+   de acceso, y no guarda información de WhatsApp en la base de datos.
+
+7. resources/exercises-dataset conserva íntegro el repositorio solicitado. Sus
+   ejemplos educativos no se importan ni se ejecutan contra tu servidor.
+
+Consulta README.md para configuración y verificación.

@@ -1,0 +1,17 @@
+{
+  "name": "goliat-system",
+  "version": "8.1.0",
+  "private": true,
+  "scripts": {
+    "install:client": "pnpm --dir client install",
+    "install:server": "npm --prefix server install",
+    "install:all": "npm run install:client && npm run install:server",
+    "dev:client": "pnpm --dir client dev",
+    "dev:server": "npm --prefix server run dev",
+    "build:client": "pnpm --dir client build",
+    "start:server": "npm --prefix server start"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}

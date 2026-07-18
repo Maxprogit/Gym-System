@@ -1,377 +1,119 @@
-# 🏋️ GOLIAT GYM SYSTEM
+# Goliat System 8.1 / Context Shift
 
-> Sistema de gestión para gimnasios con IA integrada, notificaciones automáticas por WhatsApp y generación de planes personalizados en PDF.
+Reconstrucción completa del sistema de administración para gimnasios. Conserva el stack React + TypeScript + Vite + Tailwind, Zustand, Node.js + Express, SQL Server, Socket.IO, Google Gemini, PDFKit y WhatsApp Web, con una arquitectura modular y una interfaz nueva.
 
-![Version](https://img.shields.io/badge/version-1.0.0-D4FF00?style=for-the-badge)
-![Node](https://img.shields.io/badge/Node.js-18+-green?style=for-the-badge&logo=node.js)
-![React](https://img.shields.io/badge/React-18-blue?style=for-the-badge&logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)
-![SQL Server](https://img.shields.io/badge/SQL_Server-2019+-red?style=for-the-badge&logo=microsoft-sql-server)
+La interfaz usa una dirección visual **Goliat Apex** sin repetir el mismo tablero entre módulos. Control funciona como un circuito operativo con ruta financiera animada, cinta de datos, faders mensuales y agenda; Caja, como una máquina de cobro con odómetro y cinta de movimientos; Atletas, como una red paginada de nodos con comandos contextuales; y WhatsApp se concentra en sus tres verificaciones reales. GSAP controla accesos, cambios de estado, trazos, texto, arrastre con inercia y transiciones de distribución; Sileo concentra la retroalimentación de operaciones asíncronas.
 
----
+> **Importante:** Goliat no incluye una base de datos ni esquemas, migraciones o scripts SQL propios. `server/src/config/sqlServer.js` solamente abre una conexión hacia la base que ya existe usando las variables de tu `.env` original. El repositorio externo `exercises-dataset` se conserva íntegro, incluidos sus ejemplos educativos de exportación a distintos motores; Goliat no los importa ni los ejecuta.
 
-## ✨ Características Principales
+## Qué incluye
 
-### 📊 Dashboard en Tiempo Real
-- Estadísticas de atletas activos, ingresos mensuales y membresías por vencer
-- Gráfica de tendencia de ingresos de los últimos 6 meses
-- Lista de vencimientos próximos con alertas visuales
-- Notificaciones en tiempo real via Socket.io sin necesidad de recargar la página
+- Autenticación con contraseña cifrada y token de sesión firmado.
+- Altas, edición, archivo lógico y renovación de atletas.
+- Transacciones SQL para que atleta, membresía y pago se registren como una sola operación.
+- Montos calculados en el servidor; el navegador no decide el precio de una renovación.
+- Control reconstruido como una consola continua, no como un tablero de tarjetas: combina circuito SVG animado, métricas de caja, cinta cinética, secuencia mensual arrastrable y agenda de renovaciones. Su paleta usa carbón, marfil, cobre y latón para compartir el lenguaje material de Caja sin repetir su estructura.
+- Campo de atletas con búsqueda, filtros y paginación de 25/50/100 nodos compactos; aumentó la escala tipográfica operativa y en móvil cambia a una sola columna para conservar nombres completos. El panel de acciones es un popover contextual montado fuera del roster: sigue visualmente al atleta seleccionado sin ocupar una celda, desplazar nodos ni alterar la altura de la cuadrícula.
+- Los filtros de Atletas desacoplan Flip de la animación inicial, limpian estilos GSAP residuales y conservan visibles todos los resultados incluso después de cambios rápidos o filtros vacíos.
+- Tipografías DM Sans y Space Grotesk servidas localmente para evitar dependencias visuales y avisos de red en la consola del navegador.
+- Caja reconstruida con odómetro histórico, cinta de cobros arrastrable, distribución por método y bitácora densa; no reutiliza la composición de Control.
+- Historial financiero compatible con las tablas existentes: archivar un atleta desactiva su membresía pero conserva `Members`, `Payments` y sus planes.
+- Coach con Gemini, historial automático y tres documentos: entrenamiento, nutrición e integral. El plan terminado no se imprime dentro del chat; se descarga o envía como PDF.
+- PDF multipágina con tablas de sesiones, ejercicios, comidas y bitácora semanal, en lugar de volcar Markdown sin formato.
+- Atlas integrado de extremo a extremo: conserva su cuadrícula visual dentro del Coach y el servidor resuelve ejercicios canónicos para que el PDF incluya nombre, objetivo, equipo e identificador.
+- Integración completa de `exercises-dataset`: 1,324 ejercicios, 9 idiomas y todos sus recursos visuales.
+- Biblioteca con búsqueda, filtros, paginación, tarjetas de proporción estable y detalle animado.
+- WhatsApp Web inicia automáticamente, restaura LocalAuth y transforma la interfaz al conectarse sin recopilar metadatos del dispositivo, IP ni ubicación.
+- Alertas en tiempo real y recordatorios diarios de WhatsApp.
+- Sileo para estados de carga, éxito y error sin duplicar avisos dentro de cada formulario.
+- Animación responsive con MotionPath, MorphSVG, Observer, Draggable, InertiaPlugin, `useGSAP`, ScrollTrigger, SplitText, ScrambleText, DrawSVG, Flip y objetivos DOM verificados.
+- Error boundary global para recuperar un módulo sin derribar toda la aplicación.
+- Compatibilidad con rutas previas del proyecto como `/api/renew`, `/api/ai/save-plan` y `/api/ai/send-whatsapp`, además de las rutas nuevas organizadas por dominio.
 
-### 👥 Gestión de Atletas
-- Registro, edición y eliminación de atletas
-- Búsqueda por nombre o ID en tiempo real
-- Tarjetas con indicadores visuales de estado (activo/por vencer/vencido)
-- Planes de membresía dinámicos desde la base de datos
+## Estructura
 
-### 💳 Sistema de Pagos
-- 3 métodos de pago: Efectivo, Tarjeta y Transferencia SPEI
-- Procesamiento simulado de pagos con tarjeta (arquitectura lista para pasarela real)
-- Historial completo de pagos en la sección Caja
-- Renovación de membresías con cambio de plan
+```text
+GoliatSystem/
+├── client/
+│   └── src/
+│       ├── app/             # Rutas y protección de sesión
+│       ├── components/ui/   # Componentes visuales reutilizables
+│       ├── features/        # Módulos por dominio
+│       ├── layouts/         # Navegación principal
+│       ├── lib/             # API, formato, pagos, avisos y movimiento
+│       ├── stores/          # Estado global
+│       ├── styles/          # Sistema visual
+│       └── types/           # Contratos TypeScript
+├── server/
+│   └── src/
+│       ├── config/          # Entorno y SQL Server
+│       ├── core/            # Errores y utilidades HTTP
+│       ├── middleware/      # Autenticación y errores
+│       ├── repositories/    # Acceso transaccional a datos
+│       ├── routes/          # Endpoints por dominio
+│       ├── services/        # IA, PDF, WhatsApp y catálogo
+│       └── utils/           # Validaciones y normalización
+└── resources/
+    └── exercises-dataset/   # Repositorio externo completo
+```
 
-### 🤖 Asistente IA con Google Gemini
-- Chat interactivo para generar rutinas de entrenamiento personalizadas
-- Generación de planes de dieta basados en objetivos y preferencias
-- Historial de planes anteriores por atleta para mejora continua
-- Generación automática de PDF con el plan completo
-- Envío directo del PDF por WhatsApp al atleta
+## Instalación
 
-### 📱 Integración WhatsApp
-- Notificaciones automáticas de vencimiento (3 días antes)
-- Envío de planes personalizados en PDF directamente al atleta
-- QR de vinculación desde el panel de administración
-- Desvinculación remota sin acceso al servidor
+Requiere Node.js 20.19 o superior y acceso a la base SQL Server que ya utiliza el proyecto original. Esta entrega no contiene scripts para crear, alterar o migrar la base de datos.
 
-### 🔒 Seguridad
-- Autenticación con bcrypt (hashing de contraseñas)
-- Sesiones con sessionStorage (expiran al cerrar el navegador)
-- Rate limiting (100 requests / 15 minutos por IP)
-- Sanitización de contenido con DOMPurify
-- CORS configurado por dominio
-- Rutas protegidas en el frontend
-
----
-
-## 🛠️ Stack Tecnológico
-
-### Frontend
-| Tecnología | Uso |
-|---|---|
-| React 18 + TypeScript | Framework principal |
-| Vite | Build tool |
-| Tailwind CSS | Estilos |
-| Zustand | State management |
-| Socket.io Client | Tiempo real |
-| Recharts | Gráficas |
-| Sonner | Notificaciones toast |
-| Lucide React | Iconografía |
-
-### Backend
-| Tecnología | Uso |
-|---|---|
-| Node.js + Express | Servidor |
-| SQL Server (mssql) | Base de datos |
-| Socket.io | WebSockets |
-| whatsapp-web.js | Integración WhatsApp |
-| Google Gemini API | Inteligencia Artificial |
-| PDFKit | Generación de PDFs |
-| bcryptjs | Encriptación |
-| node-cron | Tareas programadas |
-| express-rate-limit | Rate limiting |
-
----
-
-## 📋 Requisitos Previos
-
-- Node.js 18 o superior
-- SQL Server 2019 o superior (o SQL Server Express)
-- Cuenta de Google AI Studio (API Key de Gemini - gratuita)
-- Número de WhatsApp para el bot de notificaciones
-- Git
-
----
-
-## 🚀 Instalación
-
-### 1. Clonar el repositorio
+1. Copia tu archivo `server/.env` del proyecto original dentro de esta nueva carpeta `server/`. No ejecutes scripts SQL: no se necesita crear ni modificar ninguna tabla. El backend conserva los nombres y columnas originales de `Users`, `Plans`, `Members`, `Subscriptions`, `Payments` y `AthletsPlans`.
+2. Copia `client/.env.example` como `client/.env`.
+3. Desde la raíz ejecuta:
 
 ```bash
-git clone https://github.com/Maxprogit/Gym-System.git
-cd goliat-gym-system
+npm run install:all
 ```
 
-### 2. Configurar la Base de Datos
+Si solo quieres trabajar sin WhatsApp o tu servidor no puede descargar Chrome durante la instalación, instala el backend con `PUPPETEER_SKIP_DOWNLOAD=true npm --prefix server install`. Para habilitar WhatsApp después necesitarás indicar un ejecutable de Chrome compatible en el entorno de despliegue.
 
-Ejecuta los siguientes scripts en SQL Server Management Studio:
-
-```sql
--- Crear base de datos
-CREATE DATABASE GoliatDB;
-USE GoliatDB;
-
--- Tabla de usuarios administradores
-CREATE TABLE Users (
-    UserID INT IDENTITY(1,1) PRIMARY KEY,
-    Username NVARCHAR(100) NOT NULL UNIQUE,
-    PasswordHash NVARCHAR(255) NOT NULL,
-    Role NVARCHAR(50) DEFAULT 'Admin'
-);
-
--- Tabla de planes
-CREATE TABLE Plans (
-    PlanID INT IDENTITY(1,1) PRIMARY KEY,
-    PlanName NVARCHAR(100) NOT NULL,
-    DurationDays INT NOT NULL,
-    Price DECIMAL(10,2) NOT NULL
-);
-
--- Tabla de atletas
-CREATE TABLE Members (
-    MemberID INT IDENTITY(1,1) PRIMARY KEY,
-    FullName NVARCHAR(200) NOT NULL,
-    Phone NVARCHAR(20),
-    CreatedAt DATETIME DEFAULT GETDATE()
-);
-
--- Tabla de suscripciones
-CREATE TABLE Subscriptions (
-    SubscriptionID INT IDENTITY(1,1) PRIMARY KEY,
-    MemberID INT NOT NULL,
-    PlanID INT NOT NULL,
-    StartDate DATETIME DEFAULT GETDATE(),
-    EndDate DATETIME NOT NULL,
-    IsActive BIT DEFAULT 1,
-    FOREIGN KEY (MemberID) REFERENCES Members(MemberID),
-    FOREIGN KEY (PlanID) REFERENCES Plans(PlanID)
-);
-
--- Tabla de pagos
-CREATE TABLE Payments (
-    PaymentID INT IDENTITY(1,1) PRIMARY KEY,
-    MemberID INT NOT NULL,
-    Amount DECIMAL(10,2) NOT NULL,
-    PaymentMethod NVARCHAR(50),
-    PaymentDate DATETIME DEFAULT GETDATE(),
-    FOREIGN KEY (MemberID) REFERENCES Members(MemberID)
-);
-
--- Tabla de planes IA
-CREATE TABLE AthletsPlans (
-    PlanID INT IDENTITY(1,1) PRIMARY KEY,
-    MemberID INT NOT NULL,
-    PlanType NVARCHAR(50),
-    PlanContent NVARCHAR(MAX),
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    FOREIGN KEY (MemberID) REFERENCES Members(MemberID)
-);
-
--- Planes de ejemplo
-INSERT INTO Plans (PlanName, DurationDays, Price) VALUES
-('Goliat Visita', 1, 35),
-('Goliat Semanal', 7, 150),
-('Goliat Mensual', 30, 350);
-```
-
-### 3. Configurar el Servidor
+4. Inicia servidor y cliente en terminales distintas:
 
 ```bash
-cd server
-npm install
+npm run dev:server
+npm run dev:client
 ```
 
-Crea el archivo `.env` en la carpeta `server`:
+El cliente abre en `http://localhost:5173` y el servidor en `http://localhost:3001`.
 
-```env
-DB_USER=sa
-DB_PASS=tu_contraseña
-DB_SERVER=localhost\SQLEXPRESS
-DB_NAME=TU_DB
-GEMINI_API_KEY=tu_api_key_de_gemini
-```
+## Primer administrador
 
-> **¿Cómo obtener la API Key de Gemini?**
-> Ve a [aistudio.google.com](https://aistudio.google.com) → Get API Key → Create API Key. Es completamente gratuita.
-
-### 4. Crear el primer usuario administrador
+Solo si tu base existente todavía no tiene ningún usuario administrador, con el servidor activo puedes utilizar:
 
 ```bash
-# Inicia el servidor temporalmente
-node index.js
-
-# En otra terminal, ejecuta este comando
-curl -X POST http://localhost:3001/api/admin/create \
+curl -X POST http://localhost:3001/api/admin/bootstrap \
   -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "tu_contraseña_segura"}'
+  -d '{"username":"admin","password":"una_contraseña_segura","setupKey":"la_clave_de_ADMIN_SETUP_KEY"}'
 ```
 
-### 5. Configurar el Cliente
+La ruta utiliza la tabla `Users` que ya existe y deja de aceptar altas después de encontrar el primer usuario. Si tu base ya tiene usuarios, no debes ejecutar este paso.
+
+## WhatsApp y Gemini
+
+- Define `GEMINI_API_KEY` para habilitar el coach.
+- WhatsApp Web inicia automáticamente como en el proyecto original. No necesitas agregar `ENABLE_WHATSAPP` a tu `.env`.
+- Únicamente en un host sin navegador puedes definir `ENABLE_WHATSAPP=false` para desactivarlo de forma explícita.
+- En Linux o proveedores cloud, instala un navegador compatible con Puppeteer para utilizar WhatsApp.
+
+## Verificación
 
 ```bash
-cd ../client
-npm install
+npm test
+npm run build
 ```
 
-Crea el archivo `.env` en la carpeta `client`:
+Los tests cubren normalización, validaciones, preparación del historial de Gemini, texto para PDF, compatibilidad de las consultas con la estructura original y verificación de que no existan esquemas/migraciones SQL propios del proyecto. La compilación TypeScript valida el contrato completo del cliente.
 
-```env
-VITE_API_URL=http://localhost:3001
-VITE_PAYMENT_PROVIDER=simulated
-```
+La renovación no depende de un identificador adicional de suscripción: consulta y actualiza usando `MemberID`, `PlanID`, `StartDate`, `EndDate` e `IsActive`, igual que el alta original. No se agregan columnas, tablas ni migraciones.
 
-### 6. Iniciar el proyecto
+## Cobros simulados
 
-```bash
-# Terminal 1 - Servidor
-cd server
-node index.js
+Tarjeta y transferencia pasan por `client/src/services/payments/SimulatedPayment.ts` antes de crear el atleta o renovar la membresía. La terminal nunca almacena datos de tarjeta. Para personalizar la cuenta de demostración puedes definir `VITE_TRANSFER_BANK`, `VITE_TRANSFER_CLABE` y `VITE_TRANSFER_BENEFICIARY` en `client/.env`.
 
-# Terminal 2 - Cliente
-cd client
-npm run dev
-```
+## Dataset y licencias
 
-Abre [http://localhost:5173](http://localhost:5173) en tu navegador.
-
----
-
-## 🌐 Despliegue en Producción
-
-### Frontend → Vercel
-1. Sube el proyecto a GitHub
-2. Importa el repositorio en [vercel.com](https://vercel.com)
-3. Configura el directorio raíz como `client`
-4. Agrega las variables de entorno:
-   - `VITE_API_URL` → URL de tu backend
-   - `VITE_PAYMENT_PROVIDER` → `simulated`
-
-### Backend → Render
-1. Crea un nuevo Web Service en [render.com](https://render.com)
-2. Conecta tu repositorio de GitHub
-3. Configura el directorio raíz como `server`
-4. Comando de inicio: `node index.js`
-5. Agrega todas las variables de entorno del `.env`
-
-> **Nota:** El plan gratuito de Render duerme el servidor tras 15 minutos de inactividad. Se recomienda usar [UptimeRobot](https://uptimerobot.com) para mantenerlo activo haciendo ping a `/api/healthz` cada 5 minutos.
-
----
-
-## 📱 Configuración de WhatsApp
-
-1. Inicia el servidor
-2. Navega a **Conexión WhatsApp** en el panel
-3. Escanea el código QR con tu teléfono:
-   - Abre WhatsApp → Menú (⋮) → Dispositivos vinculados → Vincular dispositivo
-4. El sistema enviará automáticamente recordatorios de vencimiento cada día a las 8am
-
----
-
-## 📁 Estructura del Proyecto
-
-```
-goliat-gym-system/
-├── client/                    # Frontend React + TypeScript
-│   ├── src/
-│   │   ├── components/        # Componentes reutilizables
-│   │   │   ├── ui/            # Componentes base (Button, Input, etc.)
-│   │   │   ├── AddMemberModal.tsx
-│   │   │   ├── EditMemberModal.tsx
-│   │   │   ├── RenewModal.tsx
-│   │   │   ├── AIModal.tsx
-│   │   │   ├── PaymentModal.tsx
-│   │   │   └── MemberCard.tsx
-│   │   ├── config/
-│   │   │   └── api.ts         # Configuración centralizada de URLs
-│   │   ├── layouts/
-│   │   │   └── DashboardLayout.tsx
-│   │   ├── lib/
-│   │   │   └── useSocket.ts   # Hook de Socket.io
-│   │   ├── pages/
-│   │   │   ├── LoginPage.tsx
-│   │   │   ├── DashboardPage.tsx
-│   │   │   ├── MembersPage.tsx
-│   │   │   ├── PaymentsPage.tsx
-│   │   │   └── WhatsAppPage.tsx
-│   │   ├── services/
-│   │   │   └── payments/      # Arquitectura de pagos
-│   │   │       ├── paymentService.ts
-│   │   │       └── simulatedPayment.ts
-│   │   └── stores/
-│   │       └── useMemberStore.ts
-│   └── .env                   # Variables de entorno 
-│
-└── server/                    # Backend Node.js + Express
-    ├── index.js               # Servidor principal
-    └── .env                   # Variables de entorno (no subir a Git
-```
-
----
-
-## 🔑 Variables de Entorno
-
-### Servidor (`server/.env`)
-| Variable | Descripción | Ejemplo |
-|---|---|---|
-| `DB_USER` | Usuario de SQL Server | `sa` |
-| `DB_PASS` | Contraseña de SQL Server | `MiPassword123` |
-| `DB_SERVER` | Servidor de BD | `localhost\SQLEXPRESS` |
-| `DB_NAME` | Nombre de la base de datos | `GoliatDB` |
-| `GEMINI_API_KEY` | API Key de Google Gemini | `AIza...` |
-
-### Cliente (`client/.env`)
-| Variable | Descripción | Ejemplo |
-|---|---|---|
-| `VITE_API_URL` | URL del backend | `http://localhost:3001` |
-| `VITE_PAYMENT_PROVIDER` | Proveedor de pagos | `simulated` |
-
----
-
-## 🤖 Integración con IA
-
-El sistema usa **Google Gemini 2.5 Flash** para generar planes personalizados. El asistente:
-
-1. Consulta el historial de planes anteriores del atleta
-2. Hace preguntas específicas sobre objetivos, limitaciones y preferencias
-3. Genera un plan estructurado (rutina, dieta o ambos)
-4. Guarda el plan en la base de datos
-5. Genera un PDF profesional y lo envía por WhatsApp
-
-**Límites del plan gratuito de Gemini:**
-- 15 requests por minuto
-- 1,500 requests por día
-- Suficiente para un gimnasio pequeño/mediano
-
----
-
-## 🛣️ Roadmap
-
-- [ ] Integración con pasarela de pagos real (Stripe/Conekta)
-- [ ] Portal web para atletas
-- [ ] App móvil
-- [ ] Exportación de reportes a Excel
-- [ ] Sistema de múltiples roles (Admin/Recepcionista)
-- [ ] Soporte multi-gimnasio
-
----
-
-## 📄 Licencia
-
-Este proyecto está bajo licencia comercial. Al adquirirlo tienes derecho a:
-- ✅ Usar en proyectos comerciales
-- ✅ Modificar el código fuente
-- ✅ Desplegar en producción
-- ❌ Redistribuir o revender el código fuente
-- ❌ Remover atribuciones de autoría
-
----
-
-## 👨‍💻 Autor
-
-Desarrollado por **Maximiliano** — [GitHub](https://github.com/Maxprogit)
-
----
-
-## ⭐ ¿Te fue útil?
-
-Si este proyecto te ayudó, considera darle una estrella en GitHub y compartirlo con otros desarrolladores.
-
+Consulta [THIRD_PARTY.md](THIRD_PARTY.md). Se conservaron todos los archivos, licencias y avisos del repositorio externo. Antes de reutilizar sus imágenes o GIF fuera de este sistema, revisa específicamente los términos de Gym visual incluidos por el autor del dataset.
