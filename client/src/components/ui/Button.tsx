@@ -1,39 +1,40 @@
-import { ButtonHTMLAttributes, forwardRef } from 'react';
-import { cn } from '../../lib/utils';
-import { Loader2 } from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
+import { useRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { cn } from '../../lib/cn';
+import { gsap, useGSAP } from '../../lib/motion';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'danger' | 'outline' | 'ghost';
-  isLoading?: boolean;
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  loading?: boolean;
+  icon?: ReactNode;
 }
 
-const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', isLoading, children, ...props }, ref) => {
-    
-    const variants = {
-      primary: "bg-[#D4FF00] text-black hover:bg-[#D4FF00]/90 shadow-[0_0_15px_rgba(212,255,0,0.3)] hover:shadow-[0_0_25px_rgba(212,255,0,0.5)] border-transparent",
-      danger: "bg-red-600 text-white hover:bg-red-700 shadow-[0_0_15px_rgba(220,38,38,0.3)] border-transparent",
-      outline: "bg-transparent border border-[#27272a] text-[#e4e4e7] hover:border-[#D4FF00] hover:text-[#D4FF00]",
-      ghost: "bg-transparent text-text-[#a1a1aa] hover:text-white hover:bg-white/5 border-transparent"
-    };
+export function Button({ className, variant = 'primary', loading, icon, children, disabled, ...props }: ButtonProps) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const { contextSafe } = useGSAP({ scope: buttonRef });
+  const enter = contextSafe(() => {
+    if (disabled || loading) return;
+    gsap.to(buttonRef.current, { y: -2, scale: 1.015, duration: 0.28, ease: 'power2.out', overwrite: 'auto' });
+    const iconNode = buttonRef.current?.querySelector('svg');
+    if (iconNode) gsap.to(iconNode, { rotate: 8, scale: 1.08, duration: 0.28, overwrite: 'auto' });
+  });
+  const leave = contextSafe(() => {
+    gsap.to(buttonRef.current, { y: 0, scale: 1, duration: 0.38, ease: 'expo.out', overwrite: 'auto' });
+    const iconNode = buttonRef.current?.querySelector('svg');
+    if (iconNode) gsap.to(iconNode, { rotate: 0, scale: 1, duration: 0.38, overwrite: 'auto' });
+  });
 
-    return (
-      <button
-        ref={ref}
-        className={cn(
-          "relative inline-flex items-center justify-center rounded-lg px-6 py-2.5 font-heading font-bold uppercase tracking-wide text-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed border",
-          variants[variant],
-          className
-        )}
-        disabled={isLoading || props.disabled}
-        {...props}
-      >
-        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        {children}
-      </button>
-    );
-  }
-);
-Button.displayName = "Button";
-
-export { Button };
+  return (
+    <button
+      ref={buttonRef}
+      className={cn('button', `button--${variant}`, className)}
+      disabled={disabled || loading}
+      onPointerEnter={enter}
+      onPointerLeave={leave}
+      {...props}
+    >
+      {loading ? <LoaderCircle size={17} className="animate-spin" /> : icon}
+      <span>{children}</span>
+    </button>
+  );
+}
