@@ -14,6 +14,7 @@ const { createWhatsAppRoutes } = require('./routes/whatsappRoutes');
 
 const createApp = () => {
   const app = express();
+  app.set('trust proxy', 1);
   app.disable('x-powered-by');
   app.use(cors({ origin: env.clientOrigins, credentials: true }));
   app.use(express.json({ limit: '1mb' }));
