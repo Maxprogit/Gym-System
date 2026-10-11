@@ -31,7 +31,11 @@ server.listen(env.port, () => {
 
 const shutdown = async (signal) => {
   console.log(`[server] Cerrando por ${signal}`);
-  server.close(() => process.exit(0));
+  await whatsappService.client?.destroy().catch(() => undefined);
+  server.close(() => {
+    console.log('[server] Cerrado');
+    process.exit(0);
+  });
 };
 
 process.on('SIGINT', () => shutdown('SIGINT'));

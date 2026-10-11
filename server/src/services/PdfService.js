@@ -1,4 +1,5 @@
 const PDFDocument = require('pdfkit');
+const { loadCatalog, normalizeKey } = require('./nutritionCatalog');
 
 const COLORS = {
   ink: '#17201f',
@@ -45,6 +46,11 @@ const planSections = (planType) => {
 
 const safeText = (value, fallback = '-') => String(value || fallback).replace(/[\u2010-\u2015]/g, '-').trim();
 
+const formatRations = (value) => {
+  const number = Number(value) || 0;
+  return Number.isInteger(number) ? String(number) : number.toFixed(1);
+};
+
 const drawPageHeader = (document, { memberName, planType }) => {
   document.rect(0, 0, document.page.width, document.page.height).fill(COLORS.paper);
   document.rect(0, 0, document.page.width, 92).fill(COLORS.ink);
@@ -86,7 +92,7 @@ const drawSummary = (document, plan, context) => {
   const y = document.y;
   const columnWidth = CONTENT_WIDTH / 3;
   const summaries = [
-    ['DURACIÓN', `${Number(plan.durationWeeks) || 4} semanas`],
+    ['DURACIÓN', `${Number(plan.durationWeeks) || 4} ${(Number(plan.durationWeeks) || 4) === 1 ? 'semana' : 'semanas'}`],
     ['NIVEL', safeText(plan.experienceLevel, 'Adaptado')],
     ['FRECUENCIA', safeText(plan.training?.frequency, 'Según disponibilidad')],
   ];
@@ -99,9 +105,9 @@ const drawSummary = (document, plan, context) => {
   document.y = y + 75;
 };
 
-const measureTableRow = (document, columns, row) => Math.max(30, ...columns.map((column) => {
+const measureTableRow = (document, columns, row, minHeight = 30, padding = 14) => Math.max(minHeight, ...columns.map((column) => {
   const value = safeText(row[column.key]);
-  return document.font('Helvetica').fontSize(column.fontSize || 7.2).heightOfString(value, { width: column.width - 12, lineGap: 1 }) + 14;
+  return document.font('Helvetica').fontSize(column.fontSize || 7.2).heightOfString(value, { width: column.width - 12, lineGap: 1 }) + padding;
 }));
 
 const drawTableHeader = (document, columns, y) => {
@@ -114,11 +120,11 @@ const drawTableHeader = (document, columns, y) => {
   return y + 26;
 };
 
-const drawTable = (document, columns, rows, context, continuedLabel) => {
+const drawTable = (document, columns, rows, context, continuedLabel, minHeight = 30, padding = 14) => {
   ensureSpace(document, 58, context);
   let y = drawTableHeader(document, columns, document.y);
   rows.forEach((row, rowIndex) => {
-    const height = measureTableRow(document, columns, row);
+    const height = measureTableRow(document, columns, row, minHeight, padding);
     if (y + height > PAGE_BOTTOM) {
       document.addPage();
       drawPageHeader(document, context);
@@ -133,7 +139,7 @@ const drawTable = (document, columns, rows, context, continuedLabel) => {
       document.fillColor(columnIndex === 0 ? COLORS.ink : COLORS.inkSoft)
         .font(columnIndex === 0 ? 'Helvetica-Bold' : 'Helvetica')
         .fontSize(column.fontSize || 7.2)
-        .text(value, x + 6, y + 7, { width: column.width - 12, lineGap: 1 });
+        .text(value, x + 6, y + padding / 2, { width: column.width - 12, lineGap: 1 });
       x += column.width;
     });
     y += height;
@@ -199,18 +205,135 @@ const drawTraining = (document, plan, context) => {
   }
 };
 
+// Mismo encabezado que usan las sesiones de entrenamiento (etiqueta + título).
+const drawSubheading = (document, label, title, context) => {
+  ensureSpace(document, 115, context);
+  document.fillColor(COLORS.sageDark).font('Helvetica-Bold').fontSize(7).text(safeText(label).toUpperCase(), PAGE_MARGIN, document.y, { characterSpacing: .75 });
+  document.moveDown(.3);
+  document.fillColor(COLORS.ink).font('Helvetica-Bold').fontSize(15).text(safeText(title));
+  document.moveDown(.35);
+};
+
+const hasStructuredMeals = (meals) => meals.some((meal) => Array.isArray(meal.items) && meal.items.length);
+
+const rationsLabel = (amount) => (amount > 0 ? `${formatRations(amount)} ${amount === 1 ? 'ración' : 'raciones'}` : 'Libre');
+
+// mode "guide": cada comida lista solo grupos y raciones; el atleta elige los alimentos en la guía.
+// mode "menu": cada comida trae alimentos concretos con su porción.
+const buildMealRows = (meals, mode = 'menu') => meals.map((meal) => {
+  const moment = [safeText(meal.moment), meal.time ? safeText(meal.time) : ''].filter(Boolean).join('\n');
+  if (!Array.isArray(meal.items) || !meal.items.length) {
+    return { moment, foods: meal.foods, portion: meal.portion, purpose: meal.purpose };
+  }
+  if (mode === 'guide') {
+    return {
+      moment,
+      foods: meal.items.map((item) => safeText(item.groupName)).join('\n'),
+      portion: meal.items.map((item) => rationsLabel(Number(item.rations) || 0)).join('\n'),
+      purpose: meal.purpose,
+    };
+  }
+  return {
+    moment,
+    foods: meal.items
+      .map((item) => `${safeText(item.groupName)}: ${(item.foods || []).map((food) => (food.portion ? `${safeText(food.name)} (${safeText(food.portion)})` : safeText(food.name))).join(', ')}`)
+      .join('\n'),
+    portion: meal.items.filter((item) => item.rations > 0).map((item) => `${safeText(item.groupName)}: ${formatRations(item.rations)}`).join('\n') || 'Libre',
+    purpose: meal.purpose,
+  };
+});
+
+// Tabla de raciones: una fila por grupo usado, una columna por comida y total diario.
+const drawRationsTable = (document, meals, catalog, context) => {
+  const usedGroups = catalog.groups.filter((group) => meals.some((meal) => (meal.items || []).some((item) => item.group === group.id && item.rations > 0)));
+  if (!usedGroups.length || !meals.length) return;
+  const firstWidth = 96;
+  const totalWidth = 40;
+  const mealWidth = Math.floor((CONTENT_WIDTH - firstWidth - totalWidth) / meals.length);
+  const adjustedFirst = CONTENT_WIDTH - totalWidth - mealWidth * meals.length;
+  const columns = [
+    { key: 'group', label: 'Grupo', width: adjustedFirst, fontSize: 7.4 },
+    ...meals.map((meal, index) => ({ key: `m${index}`, label: safeText(meal.moment), width: mealWidth })),
+    { key: 'total', label: 'Total', width: totalWidth },
+  ];
+  const rows = usedGroups.map((group) => {
+    const row = { group: group.name };
+    let total = 0;
+    meals.forEach((meal, index) => {
+      const amount = (meal.items || []).filter((item) => item.group === group.id).reduce((sum, item) => sum + (Number(item.rations) || 0), 0);
+      total += amount;
+      row[`m${index}`] = amount > 0 ? formatRations(amount) : '-';
+    });
+    row.total = total > 0 ? formatRations(total) : '-';
+    return row;
+  });
+  ensureSpace(document, 100 + rows.length * 30, context);
+  drawSubheading(document, 'Distribución diaria', 'Raciones por comida', context);
+  drawTable(document, columns, rows, context, 'Raciones');
+};
+
+// Guía de alimentos compacta: 3 alimentos por fila para los grupos con porción;
+// los grupos de cantidad libre van como una línea de texto.
+const drawGuide = (document, meals, catalog, context) => {
+  const usedIds = new Set(meals.flatMap((meal) => (meal.items || []).map((item) => item.group)));
+  const groups = catalog.groups.filter((group) => usedIds.has(group.id) && group.foods.length);
+  if (!groups.length) return;
+  drawSubheading(document, 'Guía de alimentos', 'Elige de aquí para cubrir tus raciones', context);
+  const columns = [0, 1, 2].flatMap((index) => ([
+    { key: `name${index}`, label: 'Alimento', width: 104, fontSize: 6.8 },
+    { key: `portion${index}`, label: 'Porción', width: index === 2 ? 59.28 : 59.76, fontSize: 6.8 },
+  ]));
+  for (const group of groups) {
+    const free = normalizeKey(group.reference).includes('libre');
+    ensureSpace(document, 70, context);
+    document.fillColor(COLORS.ink).font('Helvetica-Bold').fontSize(11).text(safeText(group.name), PAGE_MARGIN, document.y, { continued: true });
+    document.fillColor(COLORS.muted).font('Helvetica').fontSize(7.5).text(`   ${safeText(group.reference)}`);
+    if (group.note) document.fillColor(COLORS.muted).font('Helvetica').fontSize(7).text(safeText(group.note), PAGE_MARGIN, document.y + 1, { width: CONTENT_WIDTH });
+    document.moveDown(.4);
+    if (free) {
+      const line = group.foods.map((food) => safeText(food.name)).join('  ·  ');
+      const height = document.font('Helvetica').fontSize(7.8).heightOfString(line, { width: CONTENT_WIDTH, lineGap: 2 });
+      ensureSpace(document, height + 14, context);
+      document.fillColor(COLORS.inkSoft).font('Helvetica').fontSize(7.8).text(line, PAGE_MARGIN, document.y, { width: CONTENT_WIDTH, lineGap: 2 });
+      document.moveDown(.9);
+      continue;
+    }
+    const rows = [];
+    for (let index = 0; index < group.foods.length; index += 3) {
+      const row = {};
+      [0, 1, 2].forEach((offset) => {
+        const food = group.foods[index + offset];
+        row[`name${offset}`] = food ? food.name : ' ';
+        row[`portion${offset}`] = food ? (food.portion || ' ') : ' ';
+      });
+      rows.push(row);
+    }
+    drawTable(document, columns, rows, context, group.name, 15, 8);
+  }
+};
+
 const drawNutrition = (document, plan, context) => {
   const nutrition = plan.nutrition || {};
+  const meals = Array.isArray(nutrition.meals) ? nutrition.meals : [];
+  const mode = nutrition.mode === 'guide' && hasStructuredMeals(meals) ? 'guide' : 'menu';
   drawSectionTitle(document, 2, 'Plan de nutrición', safeText(nutrition.strategy, 'Estrategia alimentaria individual.'), context);
   drawCallout(document, 'Objetivo diario', nutrition.dailyTarget, context);
   drawCallout(document, 'Hidratación', nutrition.hydration, context);
   const columns = [
     { key: 'moment', label: 'Momento', width: 82, fontSize: 7.4 },
-    { key: 'foods', label: 'Alimentos / combinación', width: 202 },
-    { key: 'portion', label: 'Porción guía', width: 96 },
+    { key: 'foods', label: mode === 'guide' ? 'Grupos a cubrir' : 'Alimentos / combinación', width: 202 },
+    { key: 'portion', label: mode === 'guide' ? 'Raciones' : 'Porción guía', width: 96 },
     { key: 'purpose', label: 'Propósito', width: 111 },
   ];
-  drawTable(document, columns, nutrition.meals || [], context, 'Nutrición');
+  drawTable(document, columns, buildMealRows(meals, mode), context, 'Nutrición');
+  if (hasStructuredMeals(meals)) {
+    const catalog = loadCatalog();
+    if (mode === 'guide') {
+      drawGuide(document, meals, catalog, context);
+    } else {
+      drawRationsTable(document, meals, catalog, context);
+    }
+  }
   if (nutrition.guidelines?.length) drawList(document, 'Criterios de seguimiento', nutrition.guidelines, context, 3);
 };
 

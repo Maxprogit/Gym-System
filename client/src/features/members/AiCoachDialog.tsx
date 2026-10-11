@@ -189,9 +189,9 @@ export function AiCoachDialog({ member, onClose }: { member: Member | null; onCl
         </aside>
 
         {view === 'chat' ? <section className="coach-conversation coach-panel">
-          <header><div><span className="live-dot" /> Sesión activa</div><small>Enter envía · Shift + Enter crea una línea</small></header>
+          <header><div><span className="live-dot" /> Sesión activa</div><small>Sueña, Decide, Crea</small></header>
           <div className="coach-feed">
-            <div className="coach-intro"><span><Bot size={18} /></span><p>Indica objetivo, experiencia, días, equipo y limitaciones de {member?.FullName}.</p></div>
+            <div className="coach-intro"><span><Bot size={18} /></span><p>¿Necesitas algún entrenamiento o plan de nutrición? {member?.FullName}.</p></div>
             {messages.map((message, index) => <div key={`${message.role}-${index}`} className={`coach-message coach-message--${message.role}`}><span>{message.role === 'assistant' ? <Bot size={16} /> : <UserRound size={16} />}</span><p>{message.content}</p></div>)}
             {loading && <div className="coach-message coach-message--assistant is-thinking"><span><Sparkles size={16} /></span><p>Procesando <i /><i /><i /></p></div>}
             {error && <div className="coach-error"><p>{error}</p><button type="button" onClick={() => void askCoach(lastPrompt, true)} disabled={loading}><RefreshCw size={14} /> Reintentar</button></div>}
@@ -207,7 +207,7 @@ export function AiCoachDialog({ member, onClose }: { member: Member | null; onCl
             <div className="plan-station__actions"><Button type="button" variant="secondary" loading={action === 'download'} disabled={Boolean(action)} icon={<FileDown size={16} />} onClick={() => void downloadPdf()}>Descargar PDF</Button><Button type="button" loading={action === 'send'} disabled={Boolean(action)} icon={<Send size={16} />} onClick={sendPdf}>Enviar por WhatsApp</Button></div>
           </div>}
 
-          <form className="coach-composer" onSubmit={sendMessage}><textarea rows={3} value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={handleComposerKey} placeholder="Describe el contexto del atleta…" disabled={loading} /><button type="submit" disabled={!input.trim() || loading} aria-label="Enviar mensaje"><ArrowUpRight size={21} /></button></form>
+          <form className="coach-composer" onSubmit={sendMessage}><textarea rows={3} value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={handleComposerKey} placeholder="Describe tus objetivos" disabled={loading} /><button type="submit" disabled={!input.trim() || loading} aria-label="Enviar mensaje"><ArrowUpRight size={21} /></button></form>
         </section> : view === 'atlas' ? <div className="coach-panel"><ExercisePicker selected={selectedExercises} onToggle={(exercise) => setSelectedExercises((current) => current.some((item) => item.id === exercise.id) ? current.filter((item) => item.id !== exercise.id) : [...current, exercise])} /></div> : <section className="coach-history coach-panel">
           <header><div><h3>Historial</h3></div><small>{history.length}</small></header>
           {history.length ? history.map((plan, index) => <article key={plan.PlanID}><span>{String(index + 1).padStart(2, '0')}</span><div><header><strong>{plan.PlanType}</strong><time>{shortDate(plan.CreatedAt)}</time></header><button type="button" onClick={() => void downloadPdf(plan.PlanContent, plan.PlanType, plan.PlanID)}><FileDown size={14} /> Descargar PDF</button></div></article>) : <div className="history-empty"><History size={24} /><h3>Sin planes</h3></div>}

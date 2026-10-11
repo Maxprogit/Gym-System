@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node --watch index.js",
     "start": "node index.js",
-    "test": "node --test"
+    "test": "node --test",
+    "postinstall": "node scripts/patch-whatsapp-web.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

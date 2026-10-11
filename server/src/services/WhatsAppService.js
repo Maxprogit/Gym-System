@@ -86,10 +86,12 @@ class WhatsAppService {
         this.emitStatus();
         this.scheduleRetry();
       });
-      this.client.on('disconnected', () => {
+      this.client.on('disconnected', async () => {
+        const old = this.client;
         this.client = null;
         this.status = 'disconnected';
         this.emitStatus();
+        await old.destroy().catch(() => undefined);
         this.scheduleRetry();
       });
       await this.client.initialize();
