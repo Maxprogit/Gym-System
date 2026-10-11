@@ -5,7 +5,17 @@ const { Server } = require('socket.io');
 const { env } = require('./src/config/env');
 const { getSqlPool, hasSqlServerConfig } = require('./src/config/sqlServer');
 const { createApp } = require('./src/app');
+const dependencies = require('./src/dependencies');
 const { configureRealtime } = require('./src/realtime');
+
+// Un error interno de una librería (por ejemplo whatsapp-web.js / puppeteer)
+// no debe tumbar el servidor completo.
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason?.message || reason);
+});
+process.on('uncaughtException', (error) => {
+  console.error('[uncaughtException]', error?.message || error);
+});
 
 const app = createApp();
 const server = http.createServer(app);
@@ -25,13 +35,18 @@ if (hasSqlServerConfig()) {
   console.warn('[sql-server] Copia tu archivo server/.env original para conectar tu SQL Server. Esta aplicación no crea ni modifica bases o tablas.');
 }
 
-server.listen(env.port, () => {
-  console.log(`[server] Goliat System disponible en http://localhost:${env.port}`);
+// En Render el puerto lo asigna la plataforma (process.env.PORT) y hay que escuchar en todas las interfaces.
+server.listen(env.port, '0.0.0.0', () => {
+  console.log(`[server] Goliat System escuchando en el puerto ${env.port}`);
+  console.log(`[server] Orígenes permitidos (CORS): ${env.clientOrigins.join(', ')}`);
+  console.log(`[server] WhatsApp ${env.enableWhatsApp ? 'habilitado' : 'deshabilitado'}`);
 });
 
 const shutdown = async (signal) => {
   console.log(`[server] Cerrando por ${signal}`);
-  await whatsappService.client?.destroy().catch(() => undefined);
+  const forceExit = setTimeout(() => process.exit(0), 10_000);
+  forceExit.unref();
+  await Promise.resolve(dependencies.whatsappService?.client?.destroy?.()).catch(() => undefined);
   server.close(() => {
     console.log('[server] Cerrado');
     process.exit(0);
