@@ -5,6 +5,9 @@ const { AppError } = require('../core/AppError');
 
 const serverRoot = path.resolve(__dirname, '../..');
 
+const RETRY_BASE_MS = 10_000;
+const RETRY_MAX_MS = 5 * 60_000;
+
 const resolveBrowserExecutable = () => {
   const candidates = [
     process.env.PUPPETEER_EXECUTABLE_PATH,
@@ -21,6 +24,28 @@ const resolveBrowserExecutable = () => {
   return candidates.find((candidate) => fs.existsSync(candidate));
 };
 
+// En local (Windows/Mac) se conservan los argumentos de siempre. En servidores Linux con poca
+// memoria (Render) se añaden banderas que reducen el consumo de Chromium.
+const buildBrowserArgs = () => {
+  const args = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'];
+  if (process.platform === 'linux') {
+    args.push(
+      '--disable-gpu',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',
+      '--disable-extensions',
+      '--disable-background-networking',
+      '--disable-default-apps',
+      '--disable-sync',
+      '--metrics-recording-only',
+      '--mute-audio',
+    );
+  }
+  return args;
+};
+
 class WhatsAppService {
   constructor() {
     this.client = null;
@@ -29,6 +54,7 @@ class WhatsAppService {
     this.qr = null;
     this.initializing = null;
     this.retryTimer = null;
+    this.retryCount = 0;
     this.manualStop = false;
   }
 
@@ -41,10 +67,31 @@ class WhatsAppService {
     if (this.qr) this.io?.emit('qr_code', this.qr);
   }
 
+  // Reintenta con espera creciente (10 s, 20 s, 40 s... hasta 5 min) para no abrir Chromium en bucle.
   scheduleRetry() {
     if (!env.enableWhatsApp || this.manualStop || this.retryTimer) return;
-    this.retryTimer = setTimeout(() => this.initialize(), 10_000);
+    const delay = Math.min(RETRY_BASE_MS * 2 ** this.retryCount, RETRY_MAX_MS);
+    this.retryCount += 1;
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      this.initialize();
+    }, delay);
     this.retryTimer.unref?.();
+  }
+
+  // Cierra el cliente y se asegura de que el proceso de Chromium muera.
+  // Si queda un Chromium huérfano, cada reintento suma memoria hasta que el servidor se cae.
+  async disposeClient() {
+    const client = this.client;
+    this.client = null;
+    if (!client) return;
+    await client.destroy().catch(() => undefined);
+    try {
+      const browserProcess = client.pupBrowser?.process?.();
+      if (browserProcess && !browserProcess.killed) browserProcess.kill('SIGKILL');
+    } catch (_error) {
+      // El proceso ya terminó.
+    }
   }
 
   async initialize() {
@@ -60,15 +107,13 @@ class WhatsAppService {
     this.initializing = (async () => {
       const { Client, LocalAuth } = require('whatsapp-web.js');
       const executablePath = resolveBrowserExecutable();
-      if (this.client) {
-        await this.client.destroy().catch(() => undefined);
-      }
+      await this.disposeClient();
       this.client = new Client({
         authStrategy: new LocalAuth({ dataPath: path.join(serverRoot, '.wwebjs_auth') }),
         puppeteer: {
           headless: true,
           ...(executablePath ? { executablePath } : {}),
-          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+          args: buildBrowserArgs(),
         },
       });
       this.client.on('qr', (qr) => {
@@ -79,27 +124,27 @@ class WhatsAppService {
       this.client.on('ready', () => {
         this.qr = null;
         this.status = 'connected';
+        this.retryCount = 0;
         this.emitStatus();
       });
-      this.client.on('auth_failure', () => {
+      this.client.on('auth_failure', async () => {
         this.status = 'error';
         this.emitStatus();
+        await this.disposeClient();
         this.scheduleRetry();
       });
       this.client.on('disconnected', async () => {
-        const old = this.client;
-        this.client = null;
         this.status = 'disconnected';
         this.emitStatus();
-        await old.destroy().catch(() => undefined);
+        await this.disposeClient();
         this.scheduleRetry();
       });
       await this.client.initialize();
-    })().catch((error) => {
-      this.client = null;
+    })().catch(async (error) => {
       this.status = 'error';
       this.emitStatus();
       console.error('[whatsapp] No se pudo iniciar:', error.message);
+      await this.disposeClient();
       this.scheduleRetry();
     }).finally(() => {
       this.initializing = null;
@@ -150,8 +195,7 @@ class WhatsAppService {
     if (this.retryTimer) clearTimeout(this.retryTimer);
     this.retryTimer = null;
     await client.logout();
-    await client.destroy().catch(() => undefined);
-    this.client = null;
+    await this.disposeClient();
     this.qr = null;
     this.status = 'disconnected';
     this.emitStatus();
